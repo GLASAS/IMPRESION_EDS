@@ -152,10 +152,10 @@
             display: none;
         }
 
-        /* CONFIGURACIÓN EXACTA PARA ANCHO DE 7.5 CM EN IMPRESIÓN */
+        /* CONFIGURACIÓN EXACTA DE TAMAÑO 7.5CM X 18CM Y FUENTE LÁSER/POS */
         @media print {
             @page {
-                size: 7.5cm auto;
+                size: 7.5cm 18cm;
                 margin: 0mm;
             }
             body * {
@@ -170,13 +170,16 @@
                 left: 0;
                 top: 0;
                 width: 7.5cm !important;
-                font-family: 'Lucida Console', Monaco, monospace;
+                height: 18cm !important;
+                font-family: 'Courier New', Courier, monospace !important;
+                font-weight: bold;
                 font-size: 11px;
-                line-height: 1.25;
+                line-height: 1.15;
                 color: #000000;
                 margin: 0;
-                padding: 2mm;
+                padding: 1mm 2mm;
                 white-space: pre-wrap;
+                overflow: hidden;
             }
         }
     </style>
@@ -188,7 +191,7 @@
         <img src="logo biomax.png" alt="Logo Biomax" style="max-width: 140px; height: auto;">
         <h1>EDS Orquídeas <br><span style="font-size: 1rem; font-weight: normal; color: #475569;">Facturación POS</span></h1>
         <div class="header-actions">
-            <span class="version-badge">V1.11</span>
+            <span class="version-badge">V1.19</span>
         </div>
     </header>
 
@@ -198,12 +201,12 @@
             <form id="posForm" onsubmit="event.preventDefault();">
                 <div class="form-group">
                     <label for="consecutivo">Número / Consecutivo de Factura</label>
-                    <input type="text" id="consecutivo" value="" required placeholder="Ingrese Cons">
+                    <input type="text" id="consecutivo" value="" required placeholder="">
                 </div>
 
                 <div class="form-group">
                     <label for="placa">Placa</label>
-                    <input type="text" id="placa" placeholder="Ej: SMM646" required style="text-transform: uppercase;">
+                    <input type="text" id="placa" required style="text-transform: uppercase;" placeholder="">
                 </div>
 
                 <div class="form-group">
@@ -223,7 +226,7 @@
 
                 <div class="form-group">
                     <label for="autorizacion">Número de Autorización</label>
-                    <input type="text" id="autorizacion" placeholder="Ingrese número de autorización">
+                    <input type="text" id="autorizacion" placeholder="">
                 </div>
 
                 <div class="form-group">
@@ -237,22 +240,22 @@
 
                 <div class="form-group">
                     <label for="ppu">Valor del Galón ($ PPU)</label>
-                    <input type="number" id="ppu" value="11380" step="1" oninput="calcularTotal()" required>
+                    <input type="number" id="ppu" value="11380" step="1" oninput="calcularTotal()" required placeholder="">
                 </div>
 
                 <div class="form-group">
                     <label for="volumen">Volumen (Galones)</label>
-                    <input type="number" id="volumen" placeholder="Ej: 14.533" step="0.001" oninput="calcularTotal()" required>
+                    <input type="number" id="volumen" step="0.001" oninput="calcularTotal()" required placeholder="">
                 </div>
 
                 <div class="form-group">
                     <label for="dinero">Dinero Total ($)</label>
-                    <input type="number" id="dinero" placeholder="Calculado automáticamente" step="1" required>
+                    <input type="number" id="dinero" step="1" required placeholder="">
                 </div>
 
                 <div class="form-group">
                     <label for="km">Kilometraje (Opcional)</label>
-                    <input type="number" id="km" placeholder="Ej: 319505">
+                    <input type="number" id="km" placeholder="">
                 </div>
 
                 <div class="actions">
@@ -262,9 +265,13 @@
         </div>
     </div>
 
-    <!-- TICKET TÉRMICO ORIGINAL (SIN LOGO, SOLO TEXTO PURO) -->
-    <div class="ticket-print-only" id="ticketImpresion"><div class="text-center">EDS ORQUIDEAS SAS</div><div class="text-center">BIOMAX</div><div class="text-center">NIT. 900.879.336</div><div class="text-center">DIRECCION CALLE 161 # 18 - 30</div><div class="text-center">BOGOTA D.C</div>
-
+    <!-- TICKET TÉRMICO CON 3 ESPACIOS AL INICIO Y 3 AL FINAL -->
+    <div class="ticket-print-only" id="ticketImpresion"><br><br><br>
+<div class="text-center">EDS ORQUIDEAS SAS</div>
+<div class="text-center">BIOMAX</div>
+<div class="text-center">NIT. 900.879.336</div>
+<div class="text-center">DIRECCION CALLE 161 # 18 - 30</div>
+<div class="text-center">BOGOTA D.C</div>
 
 Numero : <span id="t-num">22154</span>
 Fecha : <span id="t-fecha">29/09/2026</span>
@@ -282,8 +289,10 @@ PPU : $/G.<span id="t-ppu">11380</span>
 Volumen : G.<span id="t-volumen">14,533</span>
 Dinero : $<span id="t-dinero">165386</span>
 
-<div class="text-center">GRACIAS POR SU COMPRA</div><div class="text-center">VUELVA PRONTO</div>
-<div class="text-center">** COPIA EDS **</div></div>
+<div class="text-center">GRACIAS POR SU COMPRA</div>
+<div class="text-center">VUELVA PRONTO</div>
+
+<div class="text-center">** COPIA EDS **</div><br><br><br></div>
 
     <script>
         let scriptURL = localStorage.getItem('google_sheet_url') || "https://script.google.com/macros/s/AKfycbyXGDE1RK_nwnWlmI7M4uwhgIC1tAiNoF4M-MI5aUDYtqQWFnIF35cX4O6Q7_-uEYsn4A/exec";
