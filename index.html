@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generador de Facturas POS <br> EDS Orquídeas</title>
+    <title>Generador de Facturas POS - EDS Orquídeas</title>
     <style>
         :root {
             --primary-color: #0284c7;
@@ -150,7 +150,7 @@
             background: var(--primary-dark);
         }
 
-        /* CLASE PARA CENTRAR TEXTOS EXACTAMENTE EN TICKET */
+        /* CLASES DE ALINEACIÓN */
         .text-center {
             text-align: center;
             width: 100%;
@@ -174,12 +174,11 @@
             max-width: 500px;
         }
 
-        /* DISEÑO OCULTO PARA PANTALLA Y EXCLUSIVO PARA IMPRESIÓN TÉRMICA (7.5 cm) */
+        /* DISEÑO TÉRMICO EXACTO (7.5 cm) SIN LÍNEAS SOBRANTES */
         .ticket-print-only {
             display: none;
         }
 
-        /* CONFIGURACIÓN DE IMPRESIÓN REAL (7.5 CM) */
         @media print {
             body * {
                 visibility: hidden;
@@ -208,7 +207,7 @@
     <header>
         <h1>EDS Orquídeas - Facturación POS</h1>
         <div class="header-actions">
-            <span class="version-badge">V1.842</span>
+            <span class="version-badge">V1.847</span>
             <button class="btn-config" onclick="abrirConfig()">⚙️ URL Sheet</button>
         </div>
     </header>
@@ -219,7 +218,7 @@
             <form id="posForm" onsubmit="event.preventDefault();">
                 <div class="form-group">
                     <label for="placa">Placa</label>
-                    <input type="text" id="placa" placeholder="Ej: SMM646" required style="text-transform: uppercase;">
+                    <input type="text" id="placa" placeholder="Ej: KUT606" required style="text-transform: uppercase;">
                 </div>
 
                 <div class="form-group">
@@ -258,7 +257,7 @@
 
                 <div class="form-group">
                     <label for="volumen">Volumen (Galones)</label>
-                    <input type="number" id="volumen" placeholder="Ej: 14.533" step="0.001" oninput="calcularTotal()" required>
+                    <input type="number" id="volumen" placeholder="Ej: 16" step="0.001" oninput="calcularTotal()" required>
                 </div>
 
                 <div class="form-group">
@@ -268,7 +267,7 @@
 
                 <div class="form-group">
                     <label for="km">Kilometraje (Opcional)</label>
-                    <input type="number" id="km" placeholder="Ej: 319505">
+                    <input type="number" id="km" placeholder="Ej: 0">
                 </div>
 
                 <div class="actions">
@@ -278,23 +277,11 @@
         </div>
     </div>
 
-    <!-- TICKET OCULTO PARA IMPRESIÓN TÉRMICA EXACTA (7.5 cm) -->
+    <!-- TICKET TÉRMICO IDÉNTICO AL MODELO (SIN LÍNEAS CENTRALES) -->
     <div class="ticket-print-only" id="ticketImpresion"><div class="text-center">EDS ORQUIDEAS SAS</div><div class="text-center">BIOMAX</div><div class="text-center">NIT. 900.879.336</div><div class="text-center">DIRECCION CALLE 161 # 18 - 30</div><div class="text-center">BOGOTA D.C</div>------------------------------------------
-Numero  : <span id="t-num">22154</span>
-Fecha   : <span id="t-fecha">29/09/2026</span>
-Hora    : <span id="t-hora">05:34 AM</span>
-Placa   : <span id="t-placa">SMM646</span>
-Cuenta  : 
-<span id="t-cliente">PAN FACTORY</span>
-Km      : <span id="t-km">319505</span>
-Pago    : PRIVADA
-Posicion: 1
+Numero : <span id="t-num">22154</span> Fecha : <span id="t-fecha">27/10/2026</span> Hora : <span id="t-hora">08:44 a. m.</span> Placa : <span id="t-placa">KUT606</span> Cuenta : <span id="t-cliente">PRECOLISTO</span> Km : <span id="t-km">0</span> Pago : PRIVADA Posicion: 1
 ------------------------------------------
-Producto: 
-<span id="t-producto">DIESEL</span>
-PPU     : <span id="t-ppu">$/G.11380</span>
-Volumen : <span id="t-volumen">G.14,533</span>
-Dinero  : <span id="t-dinero">$165386</span>
+Producto: <span id="t-producto">DIESEL</span> PPU : $/G.<span id="t-ppu">11380</span> volumen : G.<span id="t-volumen">16</span> Dinero : $<span id="t-dinero">182080</span>
 ------------------------------------------
 <div class="text-center">GRACIAS POR SU COMPRA</div><div class="text-center">VUELVA PRONTO</div>------------------------------------------
 <div class="text-center">** COPIA **</div></div>
@@ -313,7 +300,6 @@ Dinero  : <span id="t-dinero">$165386</span>
     </div>
 
     <script>
-        // Cargar la URL guardada previamente o usar la tuya por defecto
         let scriptURL = localStorage.getItem('google_sheet_url') || "https://script.google.com/macros/s/AKfycbzL23dDV1F_7qwS_Z1FQAkPQjpLuo4mWauSyaJpL-N0OtWnu8zLB2CBGLhckNLMM4ajMg/exec";
 
         function cambiarProductoYPrecio() {
@@ -355,7 +341,6 @@ Dinero  : <span id="t-dinero">$165386</span>
             btn.innerText = "Guardando e Imprimiendo...";
             btn.disabled = true;
 
-            // 1. Actualizar datos en la plantilla oculta del ticket
             const ahora = new Date();
             const fechaFormateada = ahora.toLocaleDateString('es-CO');
             const horaFormateada = ahora.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
@@ -369,14 +354,13 @@ Dinero  : <span id="t-dinero">$165386</span>
             const dinVal = document.getElementById('dinero').value || '0';
             const kmVal = document.getElementById('km').value || '0';
 
-            document.getElementById('t-ppu').innerText = `$/G.${ppuVal}`;
-            document.getElementById('t-volumen').innerText = `G.${volVal.replace('.', ',')}`;
-            document.getElementById('t-dinero').innerText = `$${dinVal}`;
+            document.getElementById('t-ppu').innerText = ppuVal;
+            document.getElementById('t-volumen').innerText = volVal.replace('.', ',');
+            document.getElementById('t-dinero').innerText = dinVal;
             document.getElementById('t-km').innerText = kmVal;
             document.getElementById('t-fecha').innerText = fechaFormateada;
             document.getElementById('t-hora').innerText = horaFormateada;
 
-            // 2. Enviar datos a Google Sheets
             const ahoraIso = new Date().toLocaleString('es-CO');
             const formData = new URLSearchParams();
             formData.append('fechaHora', ahoraIso);
@@ -395,7 +379,6 @@ Dinero  : <span id="t-dinero">$165386</span>
                 body: formData
             }).catch(error => console.error('Error al sincronizar con Sheet:', error));
 
-            // 3. Abrir de inmediato el selector de impresora nativo
             setTimeout(() => {
                 window.print();
                 btn.innerText = "🖨️ Imprimir Ticket y Guardar";
