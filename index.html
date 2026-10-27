@@ -119,6 +119,12 @@
             background: var(--primary-dark);
         }
 
+        /* CLASE PARA CENTRAR TEXTOS EXACTAMENTE EN TICKET */
+        .text-center {
+            text-align: center;
+            width: 100%;
+        }
+
         /* DISEÑO OCULTO PARA PANTALLA Y EXCLUSIVO PARA IMPRESIÓN TÉRMICA (7.5 cm) */
         .ticket-print-only {
             display: none;
@@ -142,7 +148,6 @@
                 font-size: 11px;
                 line-height: 1.25;
                 color: #000000;
-                white-space: pre-wrap;
                 margin: 0;
                 padding: 0;
             }
@@ -221,12 +226,7 @@
     </div>
 
     <!-- TICKET OCULTO PARA IMPRESIÓN TÉRMICA EXACTA (7.5 cm) -->
-    <div class="ticket-print-only" id="ticketImpresion">EDS ORQUIDEAS SAS
-          BIOMAX          
-      NIT. 900.879.336     
-DIRECCION CALLE 161 # 18 - 30
-       BOGOTA D.C         
-------------------------------------------
+    <div class="ticket-print-only" id="ticketImpresion"><div class="text-center">EDS ORQUIDEAS SAS</div><div class="text-center">BIOMAX</div><div class="text-center">NIT. 900.879.336</div><div class="text-center">DIRECCION CALLE 161 # 18 - 30</div><div class="text-center">BOGOTA D.C</div>------------------------------------------
 Numero  : <span id="t-num">22154</span>
 Fecha   : <span id="t-fecha">29/09/2026</span>
 Hora    : <span id="t-hora">05:34 AM</span>
@@ -236,17 +236,15 @@ Cuenta  :
 Km      : <span id="t-km">319505</span>
 Pago    : PRIVADA
 Posicion: 1
-------------------------------------------
+
 Producto: 
 <span id="t-producto">DIESEL</span>
 PPU     : <span id="t-ppu">$/G.11380</span>
 Volumen : <span id="t-volumen">G.14,533</span>
 Dinero  : <span id="t-dinero">$165386</span>
-------------------------------------------
-         GRACIAS POR SU COMPRA    
-             VUELVA PRONTO        
-------------------------------------------
-             ** COPIA **          </div>
+
+<div class="text-center">GRACIAS POR SU COMPRA</div><div class="text-center">VUELVA PRONTO</div>
+<div class="text-center">** COPIA **</div></div>
 
     <script>
         const scriptURL = "https://script.google.com/macros/s/AKfycbzL23dDV1F_7qwS_Z1FQAkPQjpLuo4mWauSyaJpL-N0OtWnu8zLB2CBGLhckNLMM4ajMg/exec";
