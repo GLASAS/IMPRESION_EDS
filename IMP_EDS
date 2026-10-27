@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Facturas POS - EDS Orquídeas</title>
+    <style>
+        :root {
+            --primary-color: #0284c7;
+            --primary-dark: #0369a1;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --border-color: #cbd5e1;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            width: 100%;
+            max-width: 700px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            background: var(--card-bg);
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            color: var(--primary-dark);
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 700px;
+        }
+
+        .panel {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .panel h2 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 0.5rem;
+            color: #334155;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.35rem;
+            color: #475569;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+        }
+
+        .actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        button.btn-primary {
+            flex: 1;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.85rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button.btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        /* DISEÑO OCULTO PARA PANTALLA Y EXCLUSIVO PARA IMPRESIÓN TÉRMICA (7.5 cm) */
+        .ticket-print-only {
+            display: none;
+        }
+
+        /* CONFIGURACIÓN DE IMPRESIÓN REAL (7.5 CM) */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .ticket-print-only, .ticket-print-only * {
+                visibility: visible;
+            }
+            .ticket-print-only {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 7.5cm !important;
+                font-family: 'Lucida Console', Monaco, monospace;
+                font-size: 11px;
+                line-height: 1.25;
+                color: #000000;
+                white-space: pre-wrap;
+                margin: 0;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>EDS Orquídeas - Facturación POS</h1>
+    </header>
+
+    <div class="main-container">
+        <div class="panel">
+            <h2>Datos de la Transacción</h2>
+            <form id="posForm" onsubmit="event.preventDefault();">
+                <div class="form-group">
+                    <label for="placa">Placa</label>
+                    <input type="text" id="placa" placeholder="Ej: SMM646" required style="text-transform: uppercase;">
+                </div>
+
+                <div class="form-group">
+                    <label for="cliente">Empresa / Cliente</label>
+                    <select id="cliente" required>
+                        <option value="" disabled selected>Seleccione empresa...</option>
+                        <option value="PRECOLISTO">PRECOLISTO</option>
+                        <option value="INSUALIMENTOS">INSUALIMENTOS</option>
+                        <option value="GLOBAL">GLOBAL</option>
+                        <option value="CABO">CABO</option>
+                        <option value="TECNIENSAYOS">TECNIENSAYOS</option>
+                        <option value="PAN FACTORY">PAN FACTORY</option>
+                        <option value="LICEO">LICEO</option>
+                        <option value="MFS">MFS</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="autorizacion">Número de Autorización</label>
+                    <input type="text" id="autorizacion" placeholder="Ingrese número de autorización">
+                </div>
+
+                <div class="form-group">
+                    <label for="producto">Tipo de Producto</label>
+                    <select id="producto" onchange="cambiarProductoYPrecio()">
+                        <option value="DIESEL" selected>DIESEL (ACPM)</option>
+                        <option value="GASOLINA CORRIENTE">GASOLINA CORRIENTE</option>
+                        <option value="GASOLINA EXTRA">GASOLINA EXTRA</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="ppu">Valor del Galón ($ PPU)</label>
+                    <input type="number" id="ppu" value="11380" step="1" oninput="calcularTotal()" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="volumen">Volumen (Galones)</label>
+                    <input type="number" id="volumen" placeholder="Ej: 14.533" step="0.001" oninput="calcularTotal()" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="dinero">Dinero Total ($)</label>
+                    <input type="number" id="dinero" placeholder="Calculado automáticamente" step="1" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="km">Kilometraje (Opcional)</label>
+                    <input type="number" id="km" placeholder="Ej: 319505">
+                </div>
+
+                <div class="actions">
+                    <button type="button" class="btn-primary" id="btnImprimir" onclick="procesarImpresionYGuardar()">🖨️ Imprimir Ticket y Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TICKET OCULTO PARA IMPRESIÓN TÉRMICA EXACTA (7.5 cm) -->
+    <div class="ticket-print-only" id="ticketImpresion">EDS ORQUIDEAS SAS
+BIOMAX
+NIT. 900.879.336
+DIRECCION CALLE 161 # 18 - 30
+BOGOTA D.C
+------------------------------------------
+Numero  : <span id="t-num">22154</span>
+Fecha   : <span id="t-fecha">29/09/2026</span>
+Hora    : <span id="t-hora">05:34 AM</span>
+Placa   : <span id="t-placa">SMM646</span>
+Cuenta  : 
+<span id="t-cliente">PAN FACTORY</span>
+Serial  : 240000011CA60101
+Visitas : 1 d1s4m
+Consumo Dia: 14,53
+Consumo Sem: 14,53
+Consumo Mes: 43,18
+Km      : <span id="t-km">319505</span>
+Pago    : PRIVADA
+Posicion: 1
+------------------------------------------
+Producto: 
+<span id="t-producto">DIESEL</span>
+PPU     : <span id="t-ppu">$/G.11380</span>
+Volumen : <span id="t-volumen">G.14,533</span>
+Dinero  : <span id="t-dinero">$165386</span>
+------------------------------------------
+GRACIAS POR SU COMPRA
+VUELVA PRONTO
+------------------------------------------
+                   ** COPIA **</div>
+
+    <script>
+        const scriptURL = "https://script.google.com/macros/s/AKfycbzL23dDV1F_7qwS_Z1FQAkPQjpLuo4mWauSyaJpL-N0OtWnu8zLB2CBGLhckNLMM4ajMg/exec";
+
+        function cambiarProductoYPrecio() {
+            const producto = document.getElementById('producto').value;
+            const ppuInput = document.getElementById('ppu');
+            
+            if (producto === 'DIESEL') {
+                ppuInput.value = 11380;
+            } else if (producto.includes('GASOLINA')) {
+                ppuInput.value = 16110;
+            }
+            calcularTotal();
+        }
+
+        function calcularTotal() {
+            const ppu = parseFloat(document.getElementById('ppu').value) || 0;
+            const volumen = parseFloat(document.getElementById('volumen').value) || 0;
+            const dineroTotal = Math.round(ppu * volumen);
+            document.getElementById('dinero').value = dineroTotal > 0 ? dineroTotal : '';
+        }
+
+        function procesarImpresionYGuardar() {
+            const placaVal = document.getElementById('placa').value.trim();
+            const clienteVal = document.getElementById('cliente').value;
+            const autorizacionVal = document.getElementById('autorizacion').value.trim();
+
+            if (!placaVal) {
+                alert("Por favor ingrese la placa del vehículo.");
+                document.getElementById('placa').focus();
+                return;
+            }
+            if (!clienteVal) {
+                alert("Por favor seleccione una empresa / cliente.");
+                document.getElementById('cliente').focus();
+                return;
+            }
+
+            const btn = document.getElementById('btnImprimir');
+            btn.innerText = "Guardando e Imprimiendo...";
+            btn.disabled = true;
+
+            // 1. Actualizar datos en la plantilla oculta del ticket
+            const ahora = new Date();
+            const fechaFormateada = ahora.toLocaleDateString('es-CO');
+            const horaFormateada = ahora.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+
+            document.getElementById('t-placa').innerText = placaVal.toUpperCase();
+            document.getElementById('t-cliente').innerText = clienteVal;
+            document.getElementById('t-producto').innerText = document.getElementById('producto').value;
+            
+            const ppuVal = document.getElementById('ppu').value;
+            const volVal = document.getElementById('volumen').value || '0';
+            const dinVal = document.getElementById('dinero').value || '0';
+            const kmVal = document.getElementById('km').value || '0';
+
+            document.getElementById('t-ppu').innerText = `$/G.${ppuVal}`;
+            document.getElementById('t-volumen').innerText = `G.${volVal.replace('.', ',')}`;
+            document.getElementById('t-dinero').innerText = `$${dinVal}`;
+            document.getElementById('t-km').innerText = kmVal;
+            document.getElementById('t-fecha').innerText = fechaFormateada;
+            document.getElementById('t-hora').innerText = horaFormateada;
+
+            // 2. Enviar datos a Google Sheets (incluyendo autorización en la columna I)
+            const ahoraIso = new Date().toLocaleString('es-CO');
+            const formData = new URLSearchParams();
+            formData.append('fechaHora', ahoraIso);
+            formData.append('placa', placaVal.toUpperCase());
+            formData.append('cliente', clienteVal);
+            formData.append('km', kmVal);
+            formData.append('producto', document.getElementById('producto').value);
+            formData.append('ppu', ppuVal);
+            formData.append('volumen', volVal);
+            formData.append('dinero', dinVal);
+            formData.append('autorizacion', autorizacionVal);
+
+            fetch(scriptURL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: formData
+            }).catch(error => console.error('Error al sincronizar con Sheet:', error));
+
+            // 3. Abrir de inmediato el selector de impresora nativo
+            setTimeout(() => {
+                window.print();
+                btn.innerText = "🖨️ Imprimir Ticket y Guardar";
+                btn.disabled = false;
+            }, 600);
+        }
+    </script>
+</body>
+</html>
