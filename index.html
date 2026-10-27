@@ -183,12 +183,12 @@
 </head>
 <body>
 
-    <!-- ENCABEZADO CON LOGO DE BIOMAX EN LA PANTALLA -->
+    <!-- ENCABEZADO CON LOGO DE BIOMAX EN LA PANTALLA WEB -->
     <header>
         <img src="logo biomax.png" alt="Logo Biomax" style="max-width: 140px; height: auto;">
-        <h1>EDS Orquídeas <br>Facturación POS<span style="font-size: 1rem; font-weight: normal; color: #475569;"></span></h1>
+        <h1>EDS Orquídeas <br><span style="font-size: 1rem; font-weight: normal; color: #475569;">Facturación POS</span></h1>
         <div class="header-actions">
-            <span class="version-badge">V1.1030</span>
+            <span class="version-badge">V1.11</span>
         </div>
     </header>
 
@@ -198,12 +198,12 @@
             <form id="posForm" onsubmit="event.preventDefault();">
                 <div class="form-group">
                     <label for="consecutivo">Número / Consecutivo de Factura</label>
-                    <input type="text" id="consecutivo" value="" required placeholder="">
+                    <input type="text" id="consecutivo" value="" required placeholder="Ingrese Cons">
                 </div>
 
                 <div class="form-group">
                     <label for="placa">Placa</label>
-                    <input type="text" id="placa" placeholder="" required style="text-transform: uppercase;">
+                    <input type="text" id="placa" placeholder="Ej: SMM646" required style="text-transform: uppercase;">
                 </div>
 
                 <div class="form-group">
@@ -242,17 +242,17 @@
 
                 <div class="form-group">
                     <label for="volumen">Volumen (Galones)</label>
-                    <input type="number" id="volumen" placeholder="" step="0.001" oninput="calcularTotal()" required>
+                    <input type="number" id="volumen" placeholder="Ej: 14.533" step="0.001" oninput="calcularTotal()" required>
                 </div>
 
                 <div class="form-group">
                     <label for="dinero">Dinero Total ($)</label>
-                    <input type="number" id="dinero" placeholder="" step="1" required>
+                    <input type="number" id="dinero" placeholder="Calculado automáticamente" step="1" required>
                 </div>
 
                 <div class="form-group">
                     <label for="km">Kilometraje (Opcional)</label>
-                    <input type="number" id="km" placeholder="">
+                    <input type="number" id="km" placeholder="Ej: 319505">
                 </div>
 
                 <div class="actions">
@@ -262,15 +262,8 @@
         </div>
     </div>
 
-    <!-- TICKET TÉRMICO CON LOGO BIOMAX ARRIBA -->
-    <div class="ticket-print-only" id="ticketImpresion">
-        <div class="text-center">
-            <img src="logo biomax.png" alt="Logo Biomax" style="max-width: 120px; height: auto; margin-bottom: 5px;">
-        </div>
-        <div class="text-center">EDS ORQUIDEAS SAS</div>
-        <div class="text-center">NIT. 900.879.336</div>
-        <div class="text-center">DIRECCION CALLE 161 # 18 - 30</div>
-        <div class="text-center">BOGOTA D.C</div>
+    <!-- TICKET TÉRMICO ORIGINAL (SIN LOGO, SOLO TEXTO PURO) -->
+    <div class="ticket-print-only" id="ticketImpresion"><div class="text-center">EDS ORQUIDEAS SAS</div><div class="text-center">BIOMAX</div><div class="text-center">NIT. 900.879.336</div><div class="text-center">DIRECCION CALLE 161 # 18 - 30</div><div class="text-center">BOGOTA D.C</div>
 
 
 Numero : <span id="t-num">22154</span>
@@ -289,9 +282,7 @@ PPU : $/G.<span id="t-ppu">11380</span>
 Volumen : G.<span id="t-volumen">14,533</span>
 Dinero : $<span id="t-dinero">165386</span>
 
-<div class="text-center">GRACIAS POR SU COMPRA</div>
-<div class="text-center">VUELVA PRONTO</div>
-
+<div class="text-center">GRACIAS POR SU COMPRA</div><div class="text-center">VUELVA PRONTO</div>
 <div class="text-center">** COPIA EDS **</div></div>
 
     <script>
