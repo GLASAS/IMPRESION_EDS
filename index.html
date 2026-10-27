@@ -191,7 +191,7 @@
         <img src="logo biomax.png" alt="Logo Biomax" style="max-width: 140px; height: auto;">
         <h1>EDS Orquídeas <br><span style="font-size: 1rem; font-weight: normal; color: #475569;">Facturación POS</span></h1>
         <div class="header-actions">
-            <span class="version-badge">V1.1418</span>
+            <span class="version-badge">V1.1430</span>
         </div>
     </header>
 
@@ -265,10 +265,12 @@
         </div>
     </div>
 
-    <!-- TICKET TÉRMICO CON 3 ESPACIOS AL INICIO Y 3 AL FINAL -->
-    <div class="ticket-print-only" id="ticketImpresion"><br><br><br>
+    <!-- TICKET TÉRMICO CON LOGO BIOMAX, COPIA Y 4 SALTOS + 1 PUNTO AL FINAL -->
+    <div class="ticket-print-only" id="ticketImpresion"><br>
+<div class="text-center">
+    <img src="logo biomax.png" alt="Logo Biomax" style="max-width: 100px; height: auto; margin-bottom: 3px;">
+</div>
 <div class="text-center">EDS ORQUIDEAS SAS</div>
-<div class="text-center">BIOMAX</div>
 <div class="text-center">NIT. 900.879.336</div>
 <div class="text-center">DIRECCION CALLE 161 # 18 - 30</div>
 <div class="text-center">BOGOTA D.C</div>
@@ -292,7 +294,7 @@ Dinero : $<span id="t-dinero">165386</span>
 <div class="text-center">GRACIAS POR SU COMPRA</div>
 <div class="text-center">VUELVA PRONTO</div>
 
-<div class="text-center">** COPIA EDS **</div><br><br><br></div>
+<div class="text-center">** COPIA **</div><br><br><br><br>.</div>
 
     <script>
         let scriptURL = localStorage.getItem('google_sheet_url') || "https://script.google.com/macros/s/AKfycbyXGDE1RK_nwnWlmI7M4uwhgIC1tAiNoF4M-MI5aUDYtqQWFnIF35cX4O6Q7_-uEYsn4A/exec";
