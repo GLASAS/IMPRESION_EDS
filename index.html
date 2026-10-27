@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generador de Facturas POS - EDS Orquídeas</title>
+    
+    <!-- ICONOS PARA CELULARES (ANDROID E IOS) -->
+    <link rel="apple-touch-icon" href="logo marca de agua APK.jpg">
+    <link rel="icon" type="image/jpeg" href="logo marca de agua APK.jpg">
+
     <style>
         :root {
             --primary-color: #0284c7;
@@ -35,21 +40,25 @@
             width: 100%;
             max-width: 700px;
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
             align-items: center;
+            justify-content: center;
             margin-bottom: 1.5rem;
             background: var(--card-bg);
-            padding: 1rem 1.5rem;
+            padding: 1.25rem 1.5rem;
             border-radius: 12px;
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            text-align: center;
         }
 
         h1 {
             font-size: 1.25rem;
             color: var(--primary-dark);
+            margin-top: 0.5rem;
         }
 
         .header-actions {
+            margin-top: 0.75rem;
             display: flex;
             align-items: center;
             gap: 0.75rem;
@@ -143,7 +152,7 @@
             display: none;
         }
 
-        /* CONFIGURACIÓN EXACTA PARA ANCHO DE 7.5 CM */
+        /* CONFIGURACIÓN EXACTA PARA ANCHO DE 7.5 CM EN IMPRESIÓN */
         @media print {
             @page {
                 size: 7.5cm auto;
@@ -174,17 +183,14 @@
 </head>
 <body>
 
-
-<header style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
-    <h1 style="margin: 0; text-align: center;">
-        EDS Orquídeas <br> Facturación POS
-    </h1>
-    
-    <div class="header-actions" style="margin-top: 15px; text-align: center;">
-        <span class="version-badge">V1.1020</span>
-    </div>
-</header>
-
+    <!-- ENCABEZADO CON LOGO DE BIOMAX EN LA PANTALLA -->
+    <header>
+        <img src="logo biomax.png" alt="Logo Biomax" style="max-width: 140px; height: auto;">
+        <h1>EDS Orquídeas <br>Facturación POS<span style="font-size: 1rem; font-weight: normal; color: #475569;"></span></h1>
+        <div class="header-actions">
+            <span class="version-badge">V1.1030</span>
+        </div>
+    </header>
 
     <div class="main-container">
         <div class="panel">
@@ -192,12 +198,12 @@
             <form id="posForm" onsubmit="event.preventDefault();">
                 <div class="form-group">
                     <label for="consecutivo">Número / Consecutivo de Factura</label>
-                    <input type="text" id="consecutivo" value=" " required placeholder="Ingrese Cons">
+                    <input type="text" id="consecutivo" value="" required placeholder="">
                 </div>
 
                 <div class="form-group">
                     <label for="placa">Placa</label>
-                    <input type="text" id="placa" placeholder=" " required style="text-transform: uppercase;">
+                    <input type="text" id="placa" placeholder="" required style="text-transform: uppercase;">
                 </div>
 
                 <div class="form-group">
@@ -236,17 +242,17 @@
 
                 <div class="form-group">
                     <label for="volumen">Volumen (Galones)</label>
-                    <input type="number" id="volumen" placeholder=" " step="0.001" oninput="calcularTotal()" required>
+                    <input type="number" id="volumen" placeholder="" step="0.001" oninput="calcularTotal()" required>
                 </div>
 
                 <div class="form-group">
                     <label for="dinero">Dinero Total ($)</label>
-                    <input type="number" id="dinero" placeholder="Calculado automáticamente" step="1" required>
+                    <input type="number" id="dinero" placeholder="" step="1" required>
                 </div>
 
                 <div class="form-group">
                     <label for="km">Kilometraje (Opcional)</label>
-                    <input type="number" id="km" placeholder=" ">
+                    <input type="number" id="km" placeholder="">
                 </div>
 
                 <div class="actions">
@@ -256,8 +262,15 @@
         </div>
     </div>
 
-    <!-- TICKET TÉRMICO V1.9 -->
-    <div class="ticket-print-only" id="ticketImpresion"><div class="text-center">EDS ORQUIDEAS SAS</div><div class="text-center">BIOMAX</div><div class="text-center">NIT. 900.879.336</div><div class="text-center">DIRECCION CALLE 161 # 18 - 30</div><div class="text-center">BOGOTA D.C</div>
+    <!-- TICKET TÉRMICO CON LOGO BIOMAX ARRIBA -->
+    <div class="ticket-print-only" id="ticketImpresion">
+        <div class="text-center">
+            <img src="logo biomax.png" alt="Logo Biomax" style="max-width: 120px; height: auto; margin-bottom: 5px;">
+        </div>
+        <div class="text-center">EDS ORQUIDEAS SAS</div>
+        <div class="text-center">NIT. 900.879.336</div>
+        <div class="text-center">DIRECCION CALLE 161 # 18 - 30</div>
+        <div class="text-center">BOGOTA D.C</div>
 
 
 Numero : <span id="t-num">22154</span>
@@ -276,7 +289,9 @@ PPU : $/G.<span id="t-ppu">11380</span>
 Volumen : G.<span id="t-volumen">14,533</span>
 Dinero : $<span id="t-dinero">165386</span>
 
-<div class="text-center">GRACIAS POR SU COMPRA</div><div class="text-center">VUELVA PRONTO</div>
+<div class="text-center">GRACIAS POR SU COMPRA</div>
+<div class="text-center">VUELVA PRONTO</div>
+
 <div class="text-center">** COPIA EDS **</div></div>
 
     <script>
@@ -359,7 +374,7 @@ Dinero : $<span id="t-dinero">165386</span>
             formData.append('volumen', volVal);
             formData.append('dinero', dinVal);
             formData.append('autorizacion', autorizacionVal);
-            formData.append('consecutivo', consecutivoVal); // Se envía a la columna J
+            formData.append('consecutivo', consecutivoVal);
 
             fetch(scriptURL, {
                 method: 'POST',
