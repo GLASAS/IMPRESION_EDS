@@ -174,34 +174,44 @@
 </head>
 <body>
 
-    <header>
-        <h1>EDS Orquídeas <br> Facturación POS</h1>
-        <div class="header-actions">
-            <span class="version-badge">V1.930</span>
-        </div>
-    </header>
+
+<header style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
+    <h1 style="margin: 0; text-align: center;">
+        EDS Orquídeas <br> Facturación POS
+    </h1>
+    
+    <div class="header-actions" style="margin-top: 15px; text-align: center;">
+        <span class="version-badge">V1.1020</span>
+    </div>
+</header>
+
 
     <div class="main-container">
         <div class="panel">
             <h2>Datos de la Transacción</h2>
             <form id="posForm" onsubmit="event.preventDefault();">
                 <div class="form-group">
+                    <label for="consecutivo">Número / Consecutivo de Factura</label>
+                    <input type="text" id="consecutivo" value=" " required placeholder="Ingrese Cons">
+                </div>
+
+                <div class="form-group">
                     <label for="placa">Placa</label>
-                    <input type="text" id="placa" placeholder="Ej: SMM646" required style="text-transform: uppercase;">
+                    <input type="text" id="placa" placeholder=" " required style="text-transform: uppercase;">
                 </div>
 
                 <div class="form-group">
                     <label for="cliente">Empresa / Cliente</label>
                     <select id="cliente" required>
                         <option value="" disabled selected>Seleccione empresa...</option>
-                        <option value="PRECOLISTO">PRECOLISTO SAS</option>
+                        <option value="PRECOLISTO SAS">PRECOLISTO SAS</option>
                         <option value="INSUALIMENTOS">INSUALIMENTOS</option>
-                        <option value="GLOBAL">GLOBAL LIFE AMBULANCIAS SAS</option>
-                        <option value="CABO">CABO AMENITIES SAS</option>
-                        <option value="TECNIENSAYOS">TECNI ENSAYOS</option>
-                        <option value="PAN FACTORY">PAN FACTORY CALIDAD ALEMANA SAS</option>
-                        <option value="LICEO">PROVINCIA NUESTRA SEÑORA DEGRACIA P</option>
-                        <option value="MFS">MFS PRODUCTOS SAS</option>
+                        <option value="GLOBAL LIFE AMBULANCIAS SAS">GLOBAL LIFE AMBULANCIAS SAS</option>
+                        <option value="CABO AMENITIES SAS">CABO AMENITIES SAS</option>
+                        <option value="TECNI ENSAYOS">TECNI ENSAYOS</option>
+                        <option value="PAN FACTORY CALIDAD ALEMANA SAS">PAN FACTORY CALIDAD ALEMANA SAS</option>
+                        <option value="PROVINCIA NUESTRA SEÑORA DEGRACIA P">PROVINCIA NUESTRA SEÑORA DEGRACIA P</option>
+                        <option value="MFS PRODUCTOS SAS">MFS PRODUCTOS SAS</option>
                     </select>
                 </div>
 
@@ -226,7 +236,7 @@
 
                 <div class="form-group">
                     <label for="volumen">Volumen (Galones)</label>
-                    <input type="number" id="volumen" placeholder="Ej: 14.533" step="0.001" oninput="calcularTotal()" required>
+                    <input type="number" id="volumen" placeholder=" " step="0.001" oninput="calcularTotal()" required>
                 </div>
 
                 <div class="form-group">
@@ -236,7 +246,7 @@
 
                 <div class="form-group">
                     <label for="km">Kilometraje (Opcional)</label>
-                    <input type="number" id="km" placeholder="Ej: 319505">
+                    <input type="number" id="km" placeholder=" ">
                 </div>
 
                 <div class="actions">
@@ -246,11 +256,11 @@
         </div>
     </div>
 
-    <!-- TICKET TÉRMICO V1.8 (LÍNEAS 100% SEPARADAS) -->
+    <!-- TICKET TÉRMICO V1.9 -->
     <div class="ticket-print-only" id="ticketImpresion"><div class="text-center">EDS ORQUIDEAS SAS</div><div class="text-center">BIOMAX</div><div class="text-center">NIT. 900.879.336</div><div class="text-center">DIRECCION CALLE 161 # 18 - 30</div><div class="text-center">BOGOTA D.C</div>
 
 
-Numero : <span id="t-num">        </span>
+Numero : <span id="t-num">22154</span>
 Fecha : <span id="t-fecha">29/09/2026</span>
 Hora : <span id="t-hora">05:34 AM</span>
 
@@ -267,10 +277,10 @@ Volumen : G.<span id="t-volumen">14,533</span>
 Dinero : $<span id="t-dinero">165386</span>
 
 <div class="text-center">GRACIAS POR SU COMPRA</div><div class="text-center">VUELVA PRONTO</div>
-<div class="text-center">** COPIA EDS**</div></div>
+<div class="text-center">** COPIA **</div></div>
 
     <script>
-        let scriptURL = localStorage.getItem('google_sheet_url') || "https://script.google.com/macros/s/AKfycbzL23dDV1F_7qwS_Z1FQAkPQjpLuo4mWauSyaJpL-N0OtWnu8zLB2CBGLhckNLMM4ajMg/exec";
+        let scriptURL = localStorage.getItem('google_sheet_url') || "https://script.google.com/macros/s/AKfycbyXGDE1RK_nwnWlmI7M4uwhgIC1tAiNoF4M-MI5aUDYtqQWFnIF35cX4O6Q7_-uEYsn4A/exec";
 
         function cambiarProductoYPrecio() {
             const producto = document.getElementById('producto').value;
@@ -292,10 +302,16 @@ Dinero : $<span id="t-dinero">165386</span>
         }
 
         function procesarImpresionYGuardar() {
+            const consecutivoVal = document.getElementById('consecutivo').value.trim();
             const placaVal = document.getElementById('placa').value.trim();
             const clienteVal = document.getElementById('cliente').value;
             const autorizacionVal = document.getElementById('autorizacion').value.trim();
 
+            if (!consecutivoVal) {
+                alert("Por favor ingrese el número o consecutivo.");
+                document.getElementById('consecutivo').focus();
+                return;
+            }
             if (!placaVal) {
                 alert("Por favor ingrese la placa del vehículo.");
                 document.getElementById('placa').focus();
@@ -315,6 +331,7 @@ Dinero : $<span id="t-dinero">165386</span>
             const fechaFormateada = ahora.toLocaleDateString('es-CO');
             const horaFormateada = ahora.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
 
+            document.getElementById('t-num').innerText = consecutivoVal;
             document.getElementById('t-placa').innerText = placaVal.toUpperCase();
             document.getElementById('t-cliente').innerText = clienteVal;
             document.getElementById('t-producto').innerText = document.getElementById('producto').value;
@@ -342,6 +359,7 @@ Dinero : $<span id="t-dinero">165386</span>
             formData.append('volumen', volVal);
             formData.append('dinero', dinVal);
             formData.append('autorizacion', autorizacionVal);
+            formData.append('consecutivo', consecutivoVal); // Se envía a la columna J
 
             fetch(scriptURL, {
                 method: 'POST',
