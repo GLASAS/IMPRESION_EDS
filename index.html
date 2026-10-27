@@ -222,10 +222,10 @@
 
     <!-- TICKET OCULTO PARA IMPRESIÓN TÉRMICA EXACTA (7.5 cm) -->
     <div class="ticket-print-only" id="ticketImpresion">EDS ORQUIDEAS SAS
-BIOMAX
-NIT. 900.879.336
+          BIOMAX          
+      NIT. 900.879.336     
 DIRECCION CALLE 161 # 18 - 30
-BOGOTA D.C
+       BOGOTA D.C         
 ------------------------------------------
 Numero  : <span id="t-num">22154</span>
 Fecha   : <span id="t-fecha">29/09/2026</span>
@@ -233,11 +233,6 @@ Hora    : <span id="t-hora">05:34 AM</span>
 Placa   : <span id="t-placa">SMM646</span>
 Cuenta  : 
 <span id="t-cliente">PAN FACTORY</span>
-Serial  : 240000011CA60101
-Visitas : 1 d1s4m
-Consumo Dia: 14,53
-Consumo Sem: 14,53
-Consumo Mes: 43,18
 Km      : <span id="t-km">319505</span>
 Pago    : PRIVADA
 Posicion: 1
@@ -248,10 +243,10 @@ PPU     : <span id="t-ppu">$/G.11380</span>
 Volumen : <span id="t-volumen">G.14,533</span>
 Dinero  : <span id="t-dinero">$165386</span>
 ------------------------------------------
-GRACIAS POR SU COMPRA
-VUELVA PRONTO
+         GRACIAS POR SU COMPRA    
+             VUELVA PRONTO        
 ------------------------------------------
-                   ** COPIA **</div>
+             ** COPIA **          </div>
 
     <script>
         const scriptURL = "https://script.google.com/macros/s/AKfycbzL23dDV1F_7qwS_Z1FQAkPQjpLuo4mWauSyaJpL-N0OtWnu8zLB2CBGLhckNLMM4ajMg/exec";
@@ -316,7 +311,7 @@ VUELVA PRONTO
             document.getElementById('t-fecha').innerText = fechaFormateada;
             document.getElementById('t-hora').innerText = horaFormateada;
 
-            // 2. Enviar datos a Google Sheets (incluyendo autorización en la columna I)
+            // 2. Enviar datos a Google Sheets
             const ahoraIso = new Date().toLocaleString('es-CO');
             const formData = new URLSearchParams();
             formData.append('fechaHora', ahoraIso);
