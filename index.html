@@ -120,6 +120,13 @@
             box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
         }
 
+        /* Estilo visual para campos de solo lectura */
+        input[readonly] {
+            background-color: #f1f5f9;
+            cursor: not-allowed;
+            color: #475569;
+        }
+
         .actions {
             display: flex;
             gap: 1rem;
@@ -171,7 +178,7 @@
                 top: 0;
                 width: 7.5cm !important;
                 height: 18cm !important;
-                font-family: 'MS Gothic', monospace !important; /* Fuente MS Gothic exacta para la factura */
+                font-family: 'MS Gothic', monospace !important;
                 font-weight: bold;
                 font-size: 11px;
                 line-height: 1.15;
@@ -191,7 +198,7 @@
         <img src="logo biomax.png" alt="Logo Biomax" style="max-width: 140px; height: auto;">
         <h1>EDS Orquídeas <br><span style="font-size: 1rem; font-weight: normal; color: #475569;">Facturación POS</span></h1>
         <div class="header-actions">
-            <span class="version-badge">V1.24</span>
+            <span class="version-badge">V1.25</span>
         </div>
     </header>
 
@@ -221,7 +228,7 @@
                         <option value="PAN FACTORY CALIDAD ALEMANA SAS">PAN FACTORY CALIDAD ALEMANA SAS</option>
                         <option value="PROVINCIA NUESTRA SEÑORA DEGRACIA P">PROVINCIA NUESTRA SEÑORA DEGRACIA P</option>
                         <option value="MFS PRODUCTOS SAS">MFS PRODUCTOS SAS</option>
-                        <option value="OTROS">CLIENTE 22222222222</option>
+                        <option value="OTROS">CLIENTE 2222222</option>
                         
                     </select>
                 </div>
@@ -252,7 +259,7 @@
 
                 <div class="form-group">
                     <label for="dinero">Dinero Total ($)</label>
-                    <input type="number" id="dinero" step="1" required placeholder="">
+                    <input type="number" id="dinero" step="1" required readonly placeholder="">
                 </div>
 
                 <div class="form-group">
