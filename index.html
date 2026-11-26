@@ -364,7 +364,7 @@
         <img class="logo-biomax" src="logo biomax.png" alt="Logo Biomax" style="max-width: 140px; height: auto;" onerror="respaldoLogo(this)">
         <h1>EDS Orquídeas <br><span style="font-size: 1rem; font-weight: normal; color: #475569;">Facturación POS</span></h1>
         <div class="header-actions">
-            <span class="version-badge">V25.1130</span>
+            <span class="version-badge">V25.1135</span>
         </div>
     </header>
 
@@ -880,8 +880,8 @@ Dinero : $<span id="t-dinero">165386</span>
                         cargarViaJSONP(data && data.error ? `Error Apps Script: ${data.error}` : "Sin filas en JSON");
                     }
                 })
-                .catch(err => {
-                    cargarViaJSONP(err && err.message ? err.message : 'Respaldo JSONP');
+                .catch(() => {
+                    cargarViaJSONP('Apps Script');
                 });
         }
 
@@ -896,7 +896,7 @@ Dinero : $<span id="t-dinero">165386</span>
             };
 
             const activarRespaldoHoja = (motivo) => {
-                cargarDesdeCSVHoja(motivo || motivoFetch);
+                cargarDesdeGoogleSheetGViz(motivo || motivoFetch);
             };
 
             const timer = setTimeout(() => {
@@ -956,7 +956,7 @@ Dinero : $<span id="t-dinero">165386</span>
         }
 
         function cargarDesdeCSVHoja(motivoFetch) {
-            const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}&_=${Date.now()}`;
+            const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}&_=${Date.now()}`;
 
             fetch(csvUrl, { method: 'GET', cache: 'no-store' })
                 .then(res => {
@@ -966,7 +966,9 @@ Dinero : $<span id="t-dinero">165386</span>
                 .then(csvText => {
                     const lineas = csvText.split(/\r?\n/).filter(l => l.trim() !== '');
                     if (lineas.length <= 1) {
-                        cargarDesdeGoogleSheetGViz(motivoFetch);
+                        if (estadoElExistente()) {
+                            estadoElExistente().innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales`;
+                        }
                         return;
                     }
 
@@ -1014,13 +1016,19 @@ Dinero : $<span id="t-dinero">165386</span>
 
                     if (convertidos.length > 0) {
                         fusionarTicketsRemotos(convertidos, 'FAC EDS');
-                    } else {
-                        cargarDesdeGoogleSheetGViz(motivoFetch);
+                    } else if (estadoElExistente()) {
+                        estadoElExistente().innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales`;
                     }
                 })
-                .catch(errCsv => {
-                    cargarDesdeGoogleSheetGViz(`${motivoFetch} / ${errCsv && errCsv.message ? errCsv.message : 'CSV bloqueado'}`);
+                .catch(() => {
+                    if (estadoElExistente()) {
+                        estadoElExistente().innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales`;
+                    }
                 });
+        }
+
+        function estadoElExistente() {
+            return document.getElementById('estadoSincronizacionBase');
         }
 
         function cargarDesdeGoogleSheetGViz(motivoFetch) {
@@ -1038,9 +1046,7 @@ Dinero : $<span id="t-dinero">165386</span>
                 if (listo) return;
                 listo = true;
                 limpiar();
-                if (estadoEl) {
-                    estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales (${motivoFetch})`;
-                }
+                cargarDesdeCSVHoja(motivoFetch);
             }, 6000);
 
             window[gvizCallback] = function (resp) {
@@ -1101,13 +1107,11 @@ Dinero : $<span id="t-dinero">165386</span>
 
                     if (convertidos.length > 0) {
                         fusionarTicketsRemotos(convertidos, 'Hoja FAC EDS');
-                    } else if (estadoEl) {
-                        estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales (${motivoFetch})`;
+                    } else {
+                        cargarDesdeCSVHoja(motivoFetch);
                     }
                 } catch (e) {
-                    if (estadoEl) {
-                        estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales (${motivoFetch})`;
-                    }
+                    cargarDesdeCSVHoja(motivoFetch);
                 }
             };
 
@@ -1116,9 +1120,7 @@ Dinero : $<span id="t-dinero">165386</span>
                 listo = true;
                 clearTimeout(timer);
                 limpiar();
-                if (estadoEl) {
-                    estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales (${motivoFetch})`;
-                }
+                cargarDesdeCSVHoja(motivoFetch);
             };
 
             const sheetParam = encodeURIComponent(SHEET_NAME);
