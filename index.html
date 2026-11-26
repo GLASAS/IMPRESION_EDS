@@ -95,6 +95,7 @@
             transition: all 0.2s;
             box-shadow: 0 2px 4px rgb(0 0 0 / 0.05);
             touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .module-tab.active {
@@ -149,9 +150,11 @@
             padding: 0.75rem;
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            font-size: 1rem;
+            font-size: 16px; /* Evita zoom automático molesto en iOS */
             outline: none;
             transition: border-color 0.2s;
+            background-color: #ffffff;
+            color: var(--text-color);
         }
 
         input:focus, select:focus {
@@ -184,6 +187,7 @@
             cursor: pointer;
             transition: background 0.2s;
             touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         button.btn-primary:hover {
@@ -213,6 +217,7 @@
             cursor: pointer;
             white-space: nowrap;
             touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .btn-secondary:hover {
@@ -230,6 +235,7 @@
             cursor: pointer;
             white-space: nowrap;
             touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .btn-refresh:hover {
@@ -250,6 +256,7 @@
             margin-top: 1rem;
             max-height: 360px;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .ticket-item {
@@ -295,6 +302,7 @@
             cursor: pointer;
             white-space: nowrap;
             touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .btn-reprint:hover {
@@ -356,7 +364,7 @@
         <img class="logo-biomax" src="logo biomax.png" alt="Logo Biomax" style="max-width: 140px; height: auto;" onerror="respaldoLogo(this)">
         <h1>EDS Orquídeas <br><span style="font-size: 1rem; font-weight: normal; color: #475569;">Facturación POS</span></h1>
         <div class="header-actions">
-            <span class="version-badge">V25.1105</span>
+            <span class="version-badge">V1.4</span>
         </div>
     </header>
 
@@ -448,7 +456,7 @@
             <div class="panel">
                 <h2>Reimprimir Ticket Creado (Últimos 10)</h2>
                 <div class="search-row">
-                    <input type="text" id="filtroTicket" placeholder="Buscar por placa, consecutivo o cliente..." oninput="manejarBusquedaTicket()">
+                    <input type="text" id="filtroTicket" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="Buscar por placa, consecutivo o cliente..." oninput="manejarBusquedaTicket()" onkeyup="manejarBusquedaTicket()" onchange="manejarBusquedaTicket()">
                     <button type="button" class="btn-refresh" id="btnRefrescarBase" onclick="cargarTicketsDesdeBaseRemota(true)">🔄 Actualizar</button>
                     <button type="button" class="btn-secondary" id="btnReimprimirDirecto" onclick="reimprimirPorConsecutivoDirecto()">🖨️ Reimprimir</button>
                 </div>
@@ -701,6 +709,18 @@ Dinero : $<span id="t-dinero">165386</span>
         let memoriaTicketsRespaldo = [];
         let baseRemotaCargada = false;
 
+        function normalizarTextoBusqueda(txt) {
+            return String(txt || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toUpperCase()
+                .trim();
+        }
+
+        function normalizarCompacto(txt) {
+            return normalizarTextoBusqueda(txt).replace(/[\s-]+/g, '');
+        }
+
         function obtenerClaveTicket(ticket) {
             if (!ticket) return '';
             if (ticket.idRegistro) return String(ticket.idRegistro).trim();
@@ -737,16 +757,21 @@ Dinero : $<span id="t-dinero">165386</span>
         }
 
         function obtenerTicketsGuardados() {
+            let listaLocal = [];
             try {
                 const raw = localStorage.getItem(STORAGE_TICKETS_KEY);
                 if (raw) {
                     const parsed = JSON.parse(raw);
                     if (Array.isArray(parsed)) {
-                        memoriaTicketsRespaldo = parsed;
-                        return parsed;
+                        listaLocal = parsed;
                     }
                 }
             } catch (e) {}
+
+            if (listaLocal.length > 0) {
+                memoriaTicketsRespaldo = listaLocal;
+                return listaLocal;
+            }
             return memoriaTicketsRespaldo;
         }
 
@@ -841,8 +866,11 @@ Dinero : $<span id="t-dinero">165386</span>
             }
             if (estadoEl) estadoEl.innerText = "Consultando últimos 10 registros de FAC EDS...";
 
-            if (window.location && window.location.protocol === 'file:') {
-                cargarViaJSONP('Modo archivo local');
+            const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+            const esArchivoLocal = window.location && window.location.protocol === 'file:';
+
+            if (esMovil || esArchivoLocal) {
+                cargarViaJSONP(esMovil ? 'Móvil' : 'Local');
                 return;
             }
 
@@ -884,7 +912,7 @@ Dinero : $<span id="t-dinero">165386</span>
                 completado = true;
                 limpiar();
                 activarRespaldoHoja(motivoFetch);
-            }, 3500);
+            }, 6000);
 
             window[callbackName] = function (data) {
                 if (completado) return;
@@ -1021,7 +1049,7 @@ Dinero : $<span id="t-dinero">165386</span>
                 if (estadoEl) {
                     estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales`;
                 }
-            }, 4000);
+            }, 6000);
 
             window[gvizCallback] = function (resp) {
                 if (listo) return;
@@ -1136,23 +1164,32 @@ Dinero : $<span id="t-dinero">165386</span>
         }
 
         function obtenerTicketsFiltradosUltimos10() {
-            const filtro = (document.getElementById('filtroTicket')?.value || '').trim().toUpperCase();
-            const filtroSinEspacios = filtro.replace(/\s+/g, '');
+            const rawFiltro = document.getElementById('filtroTicket')?.value || '';
+            const filtro = normalizarTextoBusqueda(rawFiltro);
+            const filtroCompacto = normalizarCompacto(rawFiltro);
             const todos = obtenerTicketsGuardados();
 
-            if (!filtro) {
+            if (!filtroCompacto) {
                 return todos.slice(0, LIMITE_ULTIMOS_REGISTROS);
             }
 
             return todos
                 .filter(t => {
-                    const placaTxt = String(t.placa || '').toUpperCase();
-                    const placaSinEspacios = placaTxt.replace(/\s+/g, '');
-                    return placaSinEspacios.includes(filtroSinEspacios) ||
-                           placaTxt.includes(filtro) ||
-                           String(t.consecutivo || '').toUpperCase().includes(filtro) ||
-                           String(t.cliente || '').toUpperCase().includes(filtro) ||
-                           String(t.autorizacion || '').toUpperCase().includes(filtro);
+                    const placaNorm = normalizarTextoBusqueda(t.placa);
+                    const placaCompacta = normalizarCompacto(t.placa);
+                    const consecutivoNorm = normalizarTextoBusqueda(t.consecutivo);
+                    const consecutivoCompacto = normalizarCompacto(t.consecutivo);
+                    const clienteNorm = normalizarTextoBusqueda(t.cliente);
+                    const clienteCompacto = normalizarCompacto(t.cliente);
+                    const authCompacta = normalizarCompacto(t.autorizacion);
+
+                    return placaCompacta.includes(filtroCompacto) ||
+                           placaNorm.includes(filtro) ||
+                           consecutivoCompacto.includes(filtroCompacto) ||
+                           consecutivoNorm.includes(filtro) ||
+                           clienteCompacto.includes(filtroCompacto) ||
+                           clienteNorm.includes(filtro) ||
+                           authCompacta.includes(filtroCompacto);
                 })
                 .slice(0, LIMITE_ULTIMOS_REGISTROS);
         }
@@ -1188,18 +1225,20 @@ Dinero : $<span id="t-dinero">165386</span>
         }
 
         function reimprimirPorConsecutivoDirecto() {
-            const valor = (document.getElementById('filtroTicket')?.value || '').trim().toUpperCase();
-            if (!valor) {
+            const rawValor = document.getElementById('filtroTicket')?.value || '';
+            const valor = normalizarTextoBusqueda(rawValor);
+            const valorCompacto = normalizarCompacto(rawValor);
+            if (!valorCompacto) {
                 alert("Ingrese la placa o número de consecutivo para reimprimir.");
                 return;
             }
-            const valorSinEspacios = valor.replace(/\s+/g, '');
             const candidatos = obtenerTicketsFiltradosUltimos10();
             const encontrado =
-                candidatos.find(t => String(t.placa || '').toUpperCase().replace(/\s+/g, '') === valorSinEspacios) ||
-                candidatos.find(t => String(t.placa || '').toUpperCase().includes(valor)) ||
-                candidatos.find(t => String(t.consecutivo || '').toUpperCase() === valor) ||
-                candidatos.find(t => String(t.consecutivo || '').toUpperCase().includes(valor));
+                candidatos.find(t => normalizarCompacto(t.placa) === valorCompacto) ||
+                candidatos.find(t => normalizarCompacto(t.placa).includes(valorCompacto)) ||
+                candidatos.find(t => normalizarCompacto(t.consecutivo) === valorCompacto) ||
+                candidatos.find(t => normalizarCompacto(t.consecutivo).includes(valorCompacto)) ||
+                candidatos.find(t => normalizarTextoBusqueda(t.placa).includes(valor));
 
             if (!encontrado) {
                 alert("No se encontró un ticket reciente con esa placa o consecutivo.");
