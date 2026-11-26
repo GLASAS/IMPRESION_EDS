@@ -3,807 +3,1221 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Formulario Inteligente Dinámico por Secciones</title>
+    <title>Generador de Facturas POS - EDS Orquídeas</title>
+    
+    <!-- ICONOS PARA CELULARES (ANDROID E IOS) -->
+    <link rel="apple-touch-icon" href="logo marca de agua APK.jpg">
+    <link rel="icon" type="image/jpeg" href="logo marca de agua APK.jpg">
+
     <style>
+        :root {
+            --primary-color: #0284c7;
+            --primary-dark: #0369a1;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --border-color: #cbd5e1;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 1rem;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
         }
-        .form-container {
-            background-color: #ffffff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+
+        header {
             width: 100%;
-            max-width: 500px;
-            box-sizing: border-box;
-        }
-        
-        /* Contenedor del Encabezado con Logo */
-        .header-container {
+            max-width: 700px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            background: var(--card-bg);
+            padding: 1.25rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
             text-align: center;
-            margin-bottom: 25px;
         }
-        .logo-img {
-            max-width: 140px; /* Ajusta el tamaño del logo */
-            height: auto;
-            margin-bottom: 15px;
-            display: inline-block;
+
+        h1 {
+            font-size: 1.25rem;
+            color: var(--primary-dark);
+            margin-top: 0.5rem;
         }
-        .header-title {
-            margin: 0;
-            color: #333333;
-            font-size: 20px;
-            font-weight: bold;
-            line-height: 1.3;
+
+        .header-actions {
+            margin-top: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
         }
-        .header-subtitle {
-            margin: 4px 0 0 0;
-            color: #1a1a1a;
-            font-size: 18px;
-            font-weight: 800;
-            text-transform: uppercase;
-            line-height: 1.3;
+
+        .version-badge {
+            background: #e0f2fe;
+            color: #0369a1;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
         }
-        .header-department {
-            margin: 4px 0 0 0;
-            color: #4a4a4a;
-            font-size: 17px;
-            font-weight: 600;
-            line-height: 1.3;
+
+        /* NAVEGACIÓN POR MÓDULOS */
+        .module-nav {
+            width: 100%;
+            max-width: 700px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
         }
-        
-        /* Estilos de los Bloques de Secciones */
-        .form-block {
-            display: none; /* Ocultamos todas las secciones de manera predeterminada */
+
+        .module-tab {
+            background: var(--card-bg);
+            color: #475569;
+            border: 1px solid var(--border-color);
+            padding: 0.8rem 1rem;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgb(0 0 0 / 0.05);
+            touch-action: manipulation;
         }
-        .form-block.active {
-            display: block; /* Solo la sección activa se vuelve visible */
+
+        .module-tab.active {
+            background: var(--primary-color);
+            color: #ffffff;
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.3);
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 700px;
+        }
+
+        .module-section {
+            display: none;
+        }
+
+        .module-section.active {
+            display: block;
+        }
+
+        .panel {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .panel h2 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 0.5rem;
+            color: #334155;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 1rem;
         }
+
         label {
             display: block;
-            margin-bottom: 8px;
-            color: #555;
+            font-size: 0.875rem;
             font-weight: 600;
+            margin-bottom: 0.35rem;
+            color: #475569;
         }
-        
-        input[type="text"],
-        input[type="email"],
-        input[type="tel"],
-        input[type="number"],
-        input[type="date"],
-        select {
+
+        input, select {
             width: 100%;
-            padding: 10px;
-            border: 2px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-            font-size: 16px;
-            transition: border-color 0.3s;
-            background-color: #fff;
-        }
-        
-        input[type="text"] {
-            text-transform: uppercase;
-        }
-        input[type="email"] {
-            text-transform: lowercase;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
         }
 
         input:focus, select:focus {
-            outline: none;
-            border-color: #4A90E2;
-        }
-        
-        /* Clases de validación dinámica */
-        input.campo-invalido {
-            border-color: #e05b5b !important;
-            background-color: #fff6f6;
-        }
-        input.campo-valido {
-            border-color: #2ecc71 !important;
-            background-color: #f4fbf7;
-        }
-        .error-texto {
-            color: #e05b5b;
-            font-size: 12px;
-            margin-top: 5px;
-            display: none;
-            font-weight: 600;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
         }
 
-        /* Contenedor de Botones Inferiores */
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        button {
-            flex: 1;
-            padding: 12px;
-            font-size: 16px;
-            font-weight: bold;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .btn-primary {
-            background-color: #4A90E2;
-            color: white;
-        }
-        .btn-primary:hover {
-            background-color: #357ABD;
-        }
-        .btn-primary:disabled {
-            background-color: #a5c7ee;
+        /* Estilo visual para campos de solo lectura */
+        input[readonly] {
+            background-color: #f1f5f9;
             cursor: not-allowed;
-        }
-        .btn-secondary {
-            background-color: #95a5a6;
-            color: white;
-        }
-        .btn-secondary:hover {
-            background-color: #7f8c8d;
+            color: #475569;
         }
 
-        .mensaje {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 4px;
-            text-align: center;
-            display: none;
-            font-weight: 600;
-        }
-        .exito { background-color: #d4edda; color: #155724; display: block; }
-        .error { background-color: #f8d7da; color: #721c24; display: block; }
-        
-        .cargando-preguntas {
-            text-align: center;
-            color: #666;
-            font-style: italic;
-            margin-bottom: 15px;
-        }
-
-        /* Pantalla de confirmación tras finalizar el envío */
-        .pantalla-decision {
-            display: none;
-            text-align: center;
-        }
-        .pantalla-decision h3 {
-            color: #2c3e50;
-            margin-bottom: 20px;
-        }
-        .btn-decision-container {
+        .actions {
             display: flex;
-            gap: 15px;
-            justify-content: center;
-        }
-        .btn-green {
-            background-color: #2ecc71;
-            color: white;
-        }
-        .btn-green:hover {
-            background-color: #27ae60;
-        }
-        .btn-danger {
-            background-color: #e74c3c;
-            color: white;
-        }
-        .btn-danger:hover {
-            background-color: #c0392b;
+            gap: 1rem;
+            margin-top: 1.5rem;
         }
 
-        /* Pantalla de pregunta de borrador */
-        .pantalla-borrador {
-            display: none;
-            text-align: center;
-            padding: 10px 0;
+        button.btn-primary {
+            flex: 1;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.85rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            touch-action: manipulation;
         }
-        .pantalla-borrador p {
-            font-size: 16px;
-            color: #555;
-            margin-bottom: 20px;
-            line-height: 1.4;
+
+        button.btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .search-row {
+            display: flex;
+            gap: 0.6rem;
+            margin-bottom: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .search-row input {
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .btn-secondary {
+            background: #0f172a;
+            color: #ffffff;
+            border: none;
+            padding: 0.75rem 1.1rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            touch-action: manipulation;
+        }
+
+        .btn-secondary:hover {
+            background: #1e293b;
+        }
+
+        .btn-refresh {
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+            padding: 0.75rem 0.95rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            touch-action: manipulation;
+        }
+
+        .btn-refresh:hover {
+            background: #bae6fd;
+        }
+
+        .sync-status {
+            font-size: 0.8rem;
+            color: #0369a1;
+            margin-bottom: 0.5rem;
+            min-height: 1rem;
+        }
+
+        .ticket-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+            margin-top: 1rem;
+            max-height: 360px;
+            overflow-y: auto;
+        }
+
+        .ticket-item {
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 0.85rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .ticket-meta {
+            font-size: 0.85rem;
+            color: #334155;
+            line-height: 1.35;
+        }
+
+        .ticket-meta strong {
+            color: var(--primary-dark);
+        }
+
+        .print-badge {
+            display: inline-block;
+            margin-top: 0.2rem;
+            background: #e0f2fe;
+            color: #0369a1;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.15rem 0.45rem;
+            border-radius: 5px;
+        }
+
+        .btn-reprint {
+            background: var(--primary-color);
+            color: #ffffff;
+            border: none;
+            padding: 0.55rem 0.85rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            touch-action: manipulation;
+        }
+
+        .btn-reprint:hover {
+            background: var(--primary-dark);
+        }
+
+        .empty-msg {
+            text-align: center;
+            color: #64748b;
+            font-size: 0.9rem;
+            padding: 1.25rem 0.5rem;
+        }
+
+        .text-center {
+            text-align: center;
+            width: 100%;
+        }
+
+        .ticket-print-only {
+            display: none;
+        }
+
+        /* CONFIGURACIÓN TICKET 7.5CM X 18CM CON LETRA ESTÁNDAR DE FACTURA */
+        @media print {
+            @page {
+                size: 7.5cm 18cm;
+                margin: 0mm;
+            }
+            body * {
+                visibility: hidden;
+            }
+            .ticket-print-only, .ticket-print-only * {
+                visibility: visible;
+            }
+            .ticket-print-only {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 7.5cm !important;
+                height: 18cm !important;
+                font-family: 'Courier New', 'Lucida Console', monospace !important;
+                font-weight: 600;
+                font-size: 11px;
+                line-height: 1.25;
+                color: #000000;
+                margin: 0;
+                padding: 1mm 2mm;
+                white-space: pre-wrap;
+                overflow: hidden;
+            }
         }
     </style>
 </head>
 <body>
 
-<div class="form-container">
-    <!-- PANTALLA PREGUNTA BORRADOR (Si se encuentra progreso local) -->
-    <div id="draftScreen" class="pantalla-borrador">
-        <div class="header-container">
-            <img src="https://lh3.googleusercontent.com/d/1MjgNe-zgyiBPShxkwT5053JND1hc4jY8" alt="GLOBAL LIFE" class="logo-img">
-            <div class="header-title">Borrador Detectado</div>
-            <div class="header-subtitle" style="font-size: 15px;">GLOBAL LIFE AMBULANCIAS SAS</div>
+    <!-- ENCABEZADO CON LOGO DE BIOMAX EN LA PANTALLA WEB -->
+    <header>
+        <img class="logo-biomax" src="logo biomax.png" alt="Logo Biomax" style="max-width: 140px; height: auto;" onerror="respaldoLogo(this)">
+        <h1>EDS Orquídeas <br><span style="font-size: 1rem; font-weight: normal; color: #475569;">Facturación POS</span></h1>
+        <div class="header-actions">
+            <span class="version-badge">V26.1050</span>
         </div>
-        <p>Hemos encontrado información de un intento de registro anterior sin finalizar.</p>
-        <p><strong>¿Deseas continuar en la sección donde quedaste o prefieres iniciar de nuevo desde cero?</strong></p>
-        <div class="btn-decision-container" style="flex-direction: column;">
-            <button class="btn-green" type="button" onclick="recuperarBorrador()">Continuar donde quedé</button>
-            <button class="btn-secondary" type="button" onclick="descartarBorrador()">Iniciar de nuevo desde cero</button>
-        </div>
-    </div>
+    </header>
 
-    <!-- CONTENIDO PRINCIPAL DEL FORMULARIO -->
-    <div id="formContent">
-        <!-- Encabezado con Logo -->
-        <div class="header-container">
-            <img src="https://lh3.googleusercontent.com/d/1MjgNe-zgyiBPShxkwT5053JND1hc4jY8" alt="GLOBAL LIFE" class="logo-img">
-            <div class="header-title">Formulario Datos Básicos</div>
-            <div class="header-subtitle">GLOBAL LIFE AMBULANCIAS SAS</div>
-            <div class="header-department">Talento Humano</div>
-        </div>
+    <!-- SELECTOR DE MÓDULOS -->
+    <nav class="module-nav" aria-label="Módulos del sistema">
+        <button type="button" class="module-tab active" id="tabFacturacion" onclick="activarModulo('facturacion')">
+            🧾 Facturación POS
+        </button>
+        <button type="button" class="module-tab" id="tabReimpresion" onclick="activarModulo('reimpresion')">
+            🔁 Reimprimir Ticket
+        </button>
+    </nav>
 
-        <form id="sheetForm">
-            <!-- Espacio donde se inyectarán las preguntas según la sección -->
-            <div id="dynamicQuestionsContainer">
-                <div class="cargando-preguntas">Cargando formulario estructurado...</div>
+    <div class="main-container">
+        <!-- MÓDULO 1: FACTURACIÓN POS (SIN MODIFICAR LÓGICA ORIGINAL) -->
+        <section id="modulo-facturacion" class="module-section active">
+            <div class="panel">
+                <h2>Datos de la Transacción</h2>
+                <form id="posForm" onsubmit="event.preventDefault(); return false;">
+                    <div class="form-group">
+                        <label for="consecutivo">Número / Consecutivo de Factura</label>
+                        <input type="text" id="consecutivo" value="" required placeholder="">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="placa">Placa</label>
+                        <input type="text" id="placa" required style="text-transform: uppercase;" placeholder="">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cliente">Empresa / Cliente</label>
+                        <select id="cliente" required>
+                            <option value="" disabled selected>Seleccione empresa...</option>
+                            <option value="PRECOLISTO SAS">PRECOLISTO SAS</option>
+                            <option value="INSUALIMENTOS">INSUALIMENTOS</option>
+                            <option value="GLOBAL LIFE AMBULANCIAS SAS">GLOBAL LIFE AMBULANCIAS SAS</option>
+                            <option value="CABO AMENITIES SAS">CABO AMENITIES SAS</option>
+                            <option value="TECNI ENSAYOS">TECNI ENSAYOS</option>
+                            <option value="PAN FACTORY CALIDAD ALEMANA SAS">PAN FACTORY CALIDAD ALEMANA SAS</option>
+                            <option value="PROVINCIA NUESTRA SEÑORA DEGRACIA P">PROVINCIA NUESTRA SEÑORA DEGRACIA P</option>
+                            <option value="MFS PRODUCTOS SAS">MFS PRODUCTOS SAS</option>
+                            <option value="OTROS">CLIENTE 2222222</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="autorizacion">Número de Autorización</label>
+                        <input type="text" id="autorizacion" placeholder="">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="producto">Tipo de Producto</label>
+                        <select id="producto" onchange="cambiarProductoYPrecio()">
+                            <option value="DIESEL" selected>DIESEL (ACPM)</option>
+                            <option value="GASOLINA CORRIENTE">GASOLINA CORRIENTE</option>
+                            <option value="GASOLINA EXTRA">GASOLINA EXTRA</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ppu">Valor del Galón ($ PPU)</label>
+                        <input type="number" id="ppu" value="11380" step="1" oninput="calcularTotal()" required placeholder="">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="volumen">Volumen (Galones)</label>
+                        <input type="number" id="volumen" step="0.001" oninput="calcularTotal()" required placeholder="">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dinero">Dinero Total ($)</label>
+                        <input type="number" id="dinero" step="1" required readonly placeholder="">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="km">Kilometraje (Opcional)</label>
+                        <input type="number" id="km" placeholder="">
+                    </div>
+
+                    <div class="actions">
+                        <button type="button" class="btn-primary" id="btnImprimir" onclick="procesarImpresionYGuardar()">🖨️ Imprimir Ticket y Guardar</button>
+                    </div>
+                </form>
             </div>
+        </section>
 
-            <!-- Botones de navegación dinámica -->
-            <div class="btn-group" id="navigationButtons" style="display: none;">
-                <button type="button" class="btn-secondary" id="btnAtras" onclick="cambiarBloque(-1)">Atrás</button>
-                <button type="button" class="btn-primary" id="btnSiguiente" onclick="cambiarBloque(1)">Siguiente</button>
-                <button type="submit" class="btn-primary" id="btnEnviar" style="display: none;">Enviar Registro</button>
+        <!-- MÓDULO 2: REIMPRESIÓN DE TICKETS CREADOS -->
+        <section id="modulo-reimpresion" class="module-section">
+            <div class="panel">
+                <h2>Reimprimir Ticket Creado (Últimos 10)</h2>
+                <div class="search-row">
+                    <input type="text" id="filtroTicket" placeholder="Buscar por placa, consecutivo o cliente..." oninput="manejarBusquedaTicket()">
+                    <button type="button" class="btn-refresh" id="btnRefrescarBase" onclick="cargarTicketsDesdeBaseRemota(true)">🔄 Actualizar</button>
+                    <button type="button" class="btn-secondary" id="btnReimprimirDirecto" onclick="reimprimirPorConsecutivoDirecto()">🖨️ Reimprimir</button>
+                </div>
+                <div id="estadoSincronizacionBase" class="sync-status"></div>
+                <div id="listaTicketsGuardados" class="ticket-list"></div>
             </div>
-        </form>
+        </section>
     </div>
-    
-    <div id="statusMensaje" class="mensaje"></div>
 
-    <!-- Pantalla final post-registro -->
-    <div id="decisionScreen" class="pantalla-decision">
-        <div class="header-container">
-            <img src="https://lh3.googleusercontent.com/d/1MjgNe-zgyiBPShxkwT5053JND1hc4jY8" alt="GLOBAL LIFE" class="logo-img" style="max-width: 110px;">
-        </div>
-        <h3>¡Registro Exitoso!</h3>
-        <p>¿Qué desea hacer a continuación?</p>
-        <div class="btn-decision-container">
-            <button class="btn-green" type="button" onclick="reiniciarFormulario()">Llenar otro formulario</button>
-            <button class="btn-danger" type="button" onclick="salirDelFormulario()">Salir</button>
-        </div>
-    </div>
+    <!-- TICKET TÉRMICO CON LETRA ESTÁNDAR DE FACTURA -->
+    <div class="ticket-print-only" id="ticketImpresion"><br><br><br>
+<div class="text-center">
+    <img class="logo-biomax" src="logo biomax.png" alt="Logo Biomax" style="max-width: 100px; height: auto; margin-bottom: 3px;" onerror="respaldoLogo(this)">
 </div>
+<div class="text-center">EDS ORQUIDEAS SAS</div>
+<div class="text-center">NIT. 900.879.336</div>
+<div class="text-center">DIRECCION CALLE 161 # 18 - 30</div>
+<div class="text-center">BOGOTA D.C</div>
 
-<script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyRBUnVQmn4n1erjpba1WM2Oe1ulLXMyDAfnDC7MCxzqRhZKUyvPmRwaL5xRLb7b6xJ/exec";
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+Numero : <span id="t-num">22154</span>
+Fecha : <span id="t-fecha">29/09/2026</span>
+Hora : <span id="t-hora">05:34 AM</span>
 
-    // Claves para el localStorage
-    const LOCAL_RESPUESTAS_KEY = "global_life_respuestas_borrador";
-    const LOCAL_BLOQUE_KEY = "global_life_bloque_actual";
+Placa : <span id="t-placa">SMM646</span>
+Cuenta :
+<span id="t-cliente">PAN FACTORY</span>
+Km : <span id="t-km">319505</span><span id="t-autorizacion-linea"></span>
+Pago : PRIVADA
+Posicion : 1
 
-    let correoValido = false;
-    let celularValido = false;
-    let tieneCelular = false; 
+Producto: <span id="t-producto">DIESEL</span>
+PPU : $/G.<span id="t-ppu">11380</span>
+Volumen : G.<span id="t-volumen">14,533</span>
+Dinero : $<span id="t-dinero">165386</span>
 
-    let listaBloquesId = []; 
-    let indexBloqueActual = 0; 
-    let preguntasCargadasServidor = []; // Guarda las preguntas traídas del JSON
+<div class="text-center">GRACIAS POR SU COMPRA</div>
+<div class="text-center">VUELVA PRONTO</div>
 
-    // 1. CARGA DINÁMICA DE PREGUNTAS Y SECCIONES
-    document.addEventListener("DOMContentLoaded", function() {
-        const container = document.getElementById("dynamicQuestionsContainer");
-        const navButtons = document.getElementById("navigationButtons");
+<div class="text-center" id="t-leyenda">** COPIA **</div><br><br><br><br>.</div>
 
-        fetch(`${WEB_APP_URL}?getQuestions=true`)
-            .then(response => response.json())
-            .then(data => {
-                container.innerHTML = ""; 
-                
-                if (data.result === "success") {
-                    if (data.preguntas && data.preguntas.length > 0) {
-                        preguntasCargadasServidor = data.preguntas;
-                        
-                        const seccionesUnicas = [...new Set(data.preguntas.map(p => p.seccion))].sort((a, b) => a - b);
-                        listaBloquesId = seccionesUnicas;
+    <script>
+        const SHEET_ID = "1kpCmuE1pzVlyd2xZhr7hyNnGUKaDI-pVZvHgB61pEYM";
+        const SHEET_NAME = "FAC EDS";
+        const SHEET_GID = "0";
+        const SCRIPT_URL_ACTUAL = "https://script.google.com/macros/s/AKfycby4fT2vVwezUG8TjlGOXpYv3djHniizhlO_QB8_LNDttdvnmFETpMnyX1EwfD9tmdVDTA/exec";
+        let scriptURL = SCRIPT_URL_ACTUAL;
+        try {
+            localStorage.setItem('google_sheet_url', SCRIPT_URL_ACTUAL);
+        } catch (e) {}
 
-                        seccionesUnicas.forEach((secId, index) => {
-                            const bloqueDiv = document.createElement("div");
-                            bloqueDiv.className = `form-block bloque-seccion-${secId}`;
-                            if (index === 0) {
-                                bloqueDiv.classList.add("active"); 
-                            }
-                            container.appendChild(bloqueDiv);
-                        });
+        const RUTAS_LOGO_RESPALDO = [
+            './logo biomax.png',
+            'logo%20biomax.png',
+            'LOGO BIOMAX.PNG',
+            'logo marca de agua APK.jpg'
+        ];
 
-                        data.preguntas.forEach(preg => {
-                            const targetBlock = container.querySelector(`.bloque-seccion-${preg.seccion}`);
-                            if (!targetBlock) return; 
-
-                            const formGroup = document.createElement("div");
-                            formGroup.className = "form-group";
-
-                            const label = document.createElement("label");
-                            label.innerText = preg.texto;
-                            formGroup.appendChild(label);
-
-                            const nombrePregunta = preg.texto.toLowerCase();
-                            const tipoPreguntaStr = preg.tipo ? preg.tipo.toLowerCase() : "";
-
-                            // DETECCIÓN INTELIGENTE DE FECHA
-                            if (nombrePregunta.includes("fecha") || tipoPreguntaStr === "fecha" || tipoPreguntaStr === "date") {
-                                const input = document.createElement("input");
-                                input.type = "date";
-                                input.name = preg.texto;
-                                input.required = true;
-                                formGroup.appendChild(input);
-                                input.addEventListener("input", guardarProgresoEnTiempoReal);
-
-                            } else if (nombrePregunta.includes("correo") || nombrePregunta.includes("email")) {
-                                const input = document.createElement("input");
-                                input.type = "email";
-                                input.name = preg.texto;
-                                input.id = "campoCorreo";
-                                input.placeholder = "ejemplo@correo.com";
-                                input.required = true;
-                                input.autocomplete = "email";
-                                
-                                const errorSpan = document.createElement("span");
-                                errorSpan.className = "error-texto";
-                                errorSpan.id = "errorCorreoTexto";
-                                errorSpan.innerText = "Por favor, introduce un dominio válido (ejemplo: .com, .es, .co)";
-
-                                formGroup.appendChild(input);
-                                formGroup.appendChild(errorSpan);
-
-                                input.addEventListener("input", convertirAMinusculas);
-                                input.addEventListener("input", validarCorreoEnTiempoReal);
-                                input.addEventListener("change", validarCorreoEnTiempoReal);
-                                input.addEventListener("blur", validarCorreoEnTiempoReal);
-
-                            } else if (nombrePregunta.includes("celular") || nombrePregunta.includes("telefono") || nombrePregunta.includes("móvil") || nombrePregunta.includes("movil")) {
-                                tieneCelular = true;
-                                const input = document.createElement("input");
-                                input.type = "tel"; 
-                                input.name = preg.texto;
-                                input.id = "campoCelular";
-                                input.placeholder = "3008123125";
-                                input.maxLength = 10;
-                                input.required = true;
-                                input.autocomplete = "tel";
-                                
-                                const errorSpan = document.createElement("span");
-                                errorSpan.className = "error-texto";
-                                errorSpan.id = "errorCelularTexto";
-                                errorSpan.innerText = "El número debe tener exactamente 10 dígitos (solo números, sin espacios)";
-
-                                formGroup.appendChild(input);
-                                formGroup.appendChild(errorSpan);
-                                input.addEventListener("input", validarCelularSinEspacios);
-
-                            } else if (preg.tipo === "seleccion" || preg.tipo === "Seleccion") {
-                                const select = document.createElement("select");
-                                select.name = preg.texto;
-                                select.required = true;
-
-                                const optDefault = document.createElement("option");
-                                optDefault.value = "";
-                                optDefault.disabled = true;
-                                optDefault.selected = true;
-                                optDefault.innerText = "Seleccione una opción";
-                                select.appendChild(optDefault);
-
-                                if (preg.opciones) {
-                                    preg.opciones.forEach(opt => {
-                                        const option = document.createElement("option");
-                                        option.value = opt;
-                                        option.innerText = opt;
-                                        select.appendChild(option);
-                                    });
-                                }
-                                formGroup.appendChild(select);
-                                select.addEventListener("change", guardarProgresoEnTiempoReal);
-
-                            } else if (preg.tipo === "numero" || preg.tipo === "Numero") {
-                                const input = document.createElement("input");
-                                input.type = "number";
-                                input.name = preg.texto;
-                                input.placeholder = "Escriba un número";
-                                input.required = true;
-                                formGroup.appendChild(input);
-                                input.addEventListener("input", guardarProgresoEnTiempoReal);
-
-                            } else {
-                                const input = document.createElement("input");
-                                input.type = "text";
-                                input.name = preg.texto;
-                                input.placeholder = "Escriba su Respuesta";
-                                input.required = true;
-
-                                if (nombrePregunta.includes("nombre") || nombrePregunta.includes("completo")) {
-                                    input.autocomplete = "name";
-                                }
-
-                                input.addEventListener("input", convertirAMayusculas);
-                                input.addEventListener("input", guardarProgresoEnTiempoReal);
-                                formGroup.appendChild(input);
-                            }
-
-                            targetBlock.appendChild(formGroup);
-                        });
-                        
-                        navButtons.style.display = "flex";
-
-                        // VERIFICAR SI EXISTE UN BORRADOR PREVIO EN LOCALSTORAGE
-                        const borradorRespuestas = localStorage.getItem(LOCAL_RESPUESTAS_KEY);
-                        const borradorIndex = localStorage.getItem(LOCAL_BLOQUE_KEY);
-
-                        if (borradorRespuestas && borradorIndex) {
-                            // Mostrar la pantalla de decisión en lugar del formulario directamente
-                            document.getElementById("formContent").style.display = "none";
-                            document.getElementById("draftScreen").style.display = "block";
-                        } else {
-                            actualizarVisualizacionBloques();
-                        }
-
-                    } else {
-                        container.innerHTML = "<div style='text-align:center; color:#e05b5b;'>No hay preguntas en la hoja de cálculo.</div>";
-                    }
+        function respaldoLogo(imgEl) {
+            try {
+                const pasoActual = parseInt(imgEl.getAttribute('data-retry') || '0', 10);
+                if (pasoActual < RUTAS_LOGO_RESPALDO.length) {
+                    imgEl.setAttribute('data-retry', String(pasoActual + 1));
+                    imgEl.src = RUTAS_LOGO_RESPALDO[pasoActual];
                 } else {
-                    container.innerHTML = `<div style='color:red; text-align:center;'><strong>Error:</strong><br>${data.error}</div>`;
+                    imgEl.style.display = 'none';
                 }
-            })
-            .catch(error => {
-                console.error("Error cargando preguntas:", error);
-                container.innerHTML = "<div style='color:red; text-align:center;'>Error de red al conectar con Google Sheets.</div>";
-            });
-    });
-
-    // 2. SISTEMA DE AUTOGUARDADO EN LOCAL STORAGE
-    function guardarProgresoEnTiempoReal() {
-        actualizarEstadoBotonEnviar();
-
-        // Creamos un diccionario con las respuestas actuales
-        const formulario = document.getElementById("sheetForm");
-        const formData = new FormData(formulario);
-        const progreso = {};
-
-        for (const [key, value] of formData.entries()) {
-            progreso[key] = value;
+            } catch (e) {}
         }
 
-        // Guardamos las respuestas y el bloque actual
-        localStorage.setItem(LOCAL_RESPUESTAS_KEY, JSON.stringify(progreso));
-        localStorage.setItem(LOCAL_BLOQUE_KEY, indexBloqueActual.toString());
-    }
-
-    // 3. RECUPERAR O DESCARTAR EL BORRADOR
-    function recuperarBorrador() {
-        const borradorRespuestas = localStorage.getItem(LOCAL_RESPUESTAS_KEY);
-        const borradorIndex = localStorage.getItem(LOCAL_BLOQUE_KEY);
-
-        if (borradorRespuestas) {
-            const progreso = JSON.parse(borradorRespuestas);
-            const formulario = document.getElementById("sheetForm");
-
-            // Rellenar cada uno de los campos inyectados
-            for (const campoNombre in progreso) {
-                const elementos = formulario.querySelectorAll(`[name="${campoNombre}"]`);
-                elementos.forEach(elem => {
-                    elem.value = progreso[campoNombre];
-                });
-            }
-
-            // Validar de inmediato el correo electrónico y celular cargados
-            validarCorreoEnTiempoReal();
-            const inputCelular = document.getElementById("campoCelular");
-            if (inputCelular) {
-                // Ejecutamos manualmente la limpieza y validación sobre el teléfono
-                const event = { target: inputCelular };
-                validarCelularSinEspacios(event);
-            }
-
-            // Volver a la sección guardada
-            if (borradorIndex) {
-                indexBloqueActual = parseInt(borradorIndex, 10);
-                if (indexBloqueActual >= listaBloquesId.length) {
-                    indexBloqueActual = 0;
-                }
-            }
-        }
-
-        // Cambiar pantalla
-        document.getElementById("draftScreen").style.display = "none";
-        document.getElementById("formContent").style.display = "block";
-        
-        actualizarVisualizacionBloques();
-    }
-
-    function descartarBorrador() {
-        // Limpiamos los datos de la memoria
-        localStorage.removeItem(LOCAL_RESPUESTAS_KEY);
-        localStorage.removeItem(LOCAL_BLOQUE_KEY);
-
-        // Resetear el formulario físico
-        document.getElementById("sheetForm").reset();
-
-        // Cambiar de pantalla e ir al inicio
-        indexBloqueActual = 0;
-        document.getElementById("draftScreen").style.display = "none";
-        document.getElementById("formContent").style.display = "block";
-
-        actualizarVisualizacionBloques();
-    }
-
-    // NAVEGACIÓN
-    function cambiarBloque(direccion) {
-        if (direccion === 1 && !validarBloqueActual()) {
-            alert("Por favor, rellene todos los campos obligatorios de esta sección de manera correcta antes de continuar.");
-            return;
-        }
-
-        const idSeccionActual = listaBloquesId[indexBloqueActual];
-        const bloqueAnterior = document.querySelector(`.bloque-seccion-${idSeccionActual}`);
-        if (bloqueAnterior) bloqueAnterior.classList.remove("active");
-
-        indexBloqueActual += direccion;
-        
-        // Guardar la nueva posición de página
-        localStorage.setItem(LOCAL_BLOQUE_KEY, indexBloqueActual.toString());
-
-        actualizarVisualizacionBloques();
-    }
-
-    function actualizarVisualizacionBloques() {
-        const idSeccionNueva = listaBloquesId[indexBloqueActual];
-        const bloqueNuevo = document.querySelector(`.bloque-seccion-${idSeccionNueva}`);
-        
-        // Remover clase active de todos y solo dársela al correcto
-        const todosLosBloques = document.querySelectorAll(".form-block");
-        todosLosBloques.forEach(b => b.classList.remove("active"));
-
-        if (bloqueNuevo) bloqueNuevo.classList.add("active");
-
-        const btnAtras = document.getElementById("btnAtras");
-        const btnSiguiente = document.getElementById("btnSiguiente");
-        const btnEnviar = document.getElementById("btnEnviar");
-
-        btnAtras.style.display = (indexBloqueActual === 0) ? "none" : "block";
-
-        if (indexBloqueActual === listaBloquesId.length - 1) {
-            btnSiguiente.style.display = "none";
-            btnEnviar.style.display = "block";
-            actualizarEstadoBotonEnviar();
-        } else {
-            btnSiguiente.style.display = "block";
-            btnEnviar.style.display = "none";
-        }
-    }
-
-    function validarBloqueActual() {
-        const idSeccionActual = listaBloquesId[indexBloqueActual];
-        const bloqueDom = document.querySelector(`.bloque-seccion-${idSeccionActual}`);
-        if (!bloqueDom) return true;
-
-        const campos = bloqueDom.querySelectorAll("input[required], select[required]");
-        let bloqueValido = true;
-
-        campos.forEach(campo => {
-            if (!campo.value || campo.value.trim() === "") {
-                bloqueValido = false;
-            }
-            if (campo.id === "campoCorreo" && !correoValido) {
-                bloqueValido = false;
-            }
-            if (campo.id === "campoCelular" && !celularValido) {
-                bloqueValido = false;
-            }
-        });
-
-        return bloqueValido;
-    }
-
-    function convertirAMayusculas(e) {
-        const start = e.target.selectionStart;
-        const end = e.target.selectionEnd;
-        e.target.value = e.target.value.toUpperCase();
-        e.target.setSelectionRange(start, end);
-        guardarProgresoEnTiempoReal();
-    }
-
-    function convertirAMinusculas(e) {
-        const start = e.target.selectionStart;
-        const end = e.target.selectionEnd;
-        e.target.value = e.target.value.toLowerCase();
-        e.target.setSelectionRange(start, end);
-        guardarProgresoEnTiempoReal();
-    }
-
-    // CONTROL DEL BOTÓN DE ENVIAR
-    function actualizarEstadoBotonEnviar() {
-        const btn = document.getElementById("btnEnviar");
-        if (!btn) return;
-
-        const bloqueActualValido = validarBloqueActual();
-        const inputCorreo = document.getElementById("campoCorreo");
-        const validezCorreo = inputCorreo ? correoValido : true;
-        const validezCelular = tieneCelular ? celularValido : true;
-
-        if (bloqueActualValido && validezCorreo && validezCelular) {
-            btn.disabled = false;
-            btn.innerText = "Enviar Registro";
-        } else {
-            btn.disabled = true;
-            btn.innerText = "Complete el formulario...";
-        }
-    }
-
-    function validarCorreoEnTiempoReal() {
-        const inputCorreo = document.getElementById("campoCorreo");
-        const errorTexto = document.getElementById("errorCorreoTexto");
-        if (!inputCorreo) return;
-
-        const valor = inputCorreo.value.trim();
-
-        if (valor === "") {
-            inputCorreo.className = "";
-            errorTexto.style.display = "none";
-            correoValido = false;
-        } else if (emailRegex.test(valor)) {
-            inputCorreo.className = "campo-valido";
-            errorTexto.style.display = "none";
-            correoValido = true;
-        } else {
-            inputCorreo.className = "campo-invalido";
-            errorTexto.style.display = "block";
-            correoValido = false;
-        }
-        guardarProgresoEnTiempoReal();
-    }
-
-    function validarCelularSinEspacios(e) {
-        const input = e.target;
-        const errorTexto = document.getElementById("errorCelularTexto");
-        let numeros = input.value.replace(/\D/g, ""); 
-        
-        if (numeros.length > 10) {
-            numeros = numeros.slice(0, 10);
-        }
-        input.value = numeros;
-
-        if (numeros.length === 0) {
-            input.className = "";
-            errorTexto.style.display = "none";
-            celularValido = false;
-        } else if (numeros.length === 10) {
-            input.className = "campo-valido";
-            errorTexto.style.display = "none";
-            celularValido = true;
-        } else {
-            input.className = "campo-invalido";
-            errorTexto.style.display = "block";
-            celularValido = false;
-        }
-        guardarProgresoEnTiempoReal();
-    }
-
-    // ENVÍO DE DATOS
-    document.getElementById('sheetForm').addEventListener('submit', function(e) {
-        e.preventDefault(); 
-        
-        const btn = document.getElementById('btnEnviar');
-        const msgDiv = document.getElementById('statusMensaje');
-        const inputCorreo = document.getElementById("campoCorreo");
-        const inputCelular = document.getElementById("campoCelular");
-
-        if (inputCorreo && !emailRegex.test(inputCorreo.value.trim())) {
-            msgDiv.innerText = "Por favor, corrija el correo electrónico antes de proceder.";
-            msgDiv.className = "mensaje error";
-            msgDiv.style.display = "block";
-            return;
-        }
-
-        if (inputCelular && inputCelular.value.length !== 10) {
-            msgDiv.innerText = "El celular de contacto debe tener exactamente 10 números.";
-            msgDiv.className = "mensaje error";
-            msgDiv.style.display = "block";
-            return;
-        }
-        
-        btn.disabled = true;
-        btn.innerText = "Enviando registro...";
-        msgDiv.style.display = "none";
-
-        const formData = new FormData(this);
-        const urlParams = new URLSearchParams();
-        for (const [key, val] of formData.entries()) {
-            if (key.toLowerCase().trim() !== "marca temporal") {
-                urlParams.append(key, val);
-            }
-        }
-
-        fetch(`${WEB_APP_URL}?${urlParams.toString()}`, {
-            method: 'GET',
-            mode: 'cors'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if(data.result === 'success') {
-                // ENVÍO EXITOSO: Limpiamos por completo el borrador local para un registro nuevo
-                localStorage.removeItem(LOCAL_RESPUESTAS_KEY);
-                localStorage.removeItem(LOCAL_BLOQUE_KEY);
-
-                document.getElementById('formContent').style.display = 'none';
-                document.getElementById('decisionScreen').style.display = 'block';
-                msgDiv.style.display = "none";
+        function actualizarAutorizacionEnTicket(valorAutorizacion) {
+            const limpio = String(valorAutorizacion || '').trim();
+            const elLinea = document.getElementById('t-autorizacion-linea');
+            if (!elLinea) return;
+            if (limpio !== '' && limpio !== '0' && Number(limpio) !== 0) {
+                elLinea.innerText = `\nAutorizacion : ${limpio}`;
             } else {
-                msgDiv.innerText = "Sucedió un error al guardar: " + (data.error || "");
-                msgDiv.className = "mensaje error";
-                msgDiv.style.display = "block";
-                btn.disabled = false;
-                btn.innerText = "Enviar Registro";
+                elLinea.innerText = '';
             }
-        })
-        .catch(error => {
-            console.error('Error al enviar:', error);
-            msgDiv.innerText = "Error físico de conexión con el servidor.";
-            msgDiv.className = "mensaje error";
-            msgDiv.style.display = "block";
-            btn.disabled = false;
-            btn.innerText = "Enviar Registro";
+        }
+
+        function cambiarProductoYPrecio() {
+            const producto = document.getElementById('producto').value;
+            const ppuInput = document.getElementById('ppu');
+            
+            if (producto === 'DIESEL') {
+                ppuInput.value = 11380;
+            } else if (producto.includes('GASOLINA')) {
+                ppuInput.value = 16110;
+            }
+            calcularTotal();
+        }
+
+        function calcularTotal() {
+            const ppu = parseFloat(document.getElementById('ppu').value) || 0;
+            const volumen = parseFloat(document.getElementById('volumen').value) || 0;
+            const dineroTotal = Math.round(ppu * volumen);
+            document.getElementById('dinero').value = dineroTotal > 0 ? dineroTotal : '';
+        }
+
+        function procesarImpresionYGuardar() {
+            const btn = document.getElementById('btnImprimir');
+            try {
+                const consecutivoVal = document.getElementById('consecutivo').value.trim();
+                const placaVal = document.getElementById('placa').value.trim();
+                const clienteVal = document.getElementById('cliente').value;
+                const autorizacionVal = document.getElementById('autorizacion').value.trim();
+
+                if (!consecutivoVal) {
+                    alert("Por favor ingrese el número o consecutivo.");
+                    document.getElementById('consecutivo').focus();
+                    return;
+                }
+                if (!placaVal) {
+                    alert("Por favor ingrese la placa del vehículo.");
+                    document.getElementById('placa').focus();
+                    return;
+                }
+                if (!clienteVal) {
+                    alert("Por favor seleccione una empresa / cliente.");
+                    document.getElementById('cliente').focus();
+                    return;
+                }
+
+                if (btn) {
+                    btn.innerText = "Guardando e Imprimiendo...";
+                    btn.disabled = true;
+                }
+
+                const ahora = new Date();
+                const fechaFormateada = ahora.toLocaleDateString('es-CO');
+                const horaFormateada = ahora.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+
+                document.getElementById('t-num').innerText = consecutivoVal;
+                document.getElementById('t-placa').innerText = placaVal.toUpperCase();
+                document.getElementById('t-cliente').innerText = clienteVal;
+                document.getElementById('t-producto').innerText = document.getElementById('producto').value;
+                
+                const ppuVal = document.getElementById('ppu').value;
+                const volVal = document.getElementById('volumen').value || '0';
+                const dinVal = document.getElementById('dinero').value || '0';
+                const kmVal = document.getElementById('km').value || '0';
+
+                document.getElementById('t-ppu').innerText = ppuVal;
+                document.getElementById('t-volumen').innerText = volVal.replace('.', ',');
+                document.getElementById('t-dinero').innerText = dinVal;
+                document.getElementById('t-km').innerText = kmVal;
+                actualizarAutorizacionEnTicket(autorizacionVal);
+                document.getElementById('t-fecha').innerText = fechaFormateada;
+                document.getElementById('t-hora').innerText = horaFormateada;
+                document.getElementById('t-leyenda').innerText = "** COPIA **";
+
+                guardarTicketLocal({
+                    idRegistro: consecutivoVal,
+                    consecutivo: consecutivoVal,
+                    fecha: fechaFormateada,
+                    hora: horaFormateada,
+                    placa: placaVal.toUpperCase(),
+                    cliente: clienteVal,
+                    km: kmVal,
+                    producto: document.getElementById('producto').value,
+                    ppu: ppuVal,
+                    volumen: volVal,
+                    dinero: dinVal,
+                    autorizacion: autorizacionVal,
+                    vecesImpreso: 1
+                });
+                renderizarTicketsGuardados();
+
+                const ahoraIso = new Date().toLocaleString('es-CO');
+                const formData = new URLSearchParams();
+                formData.append('fechaHora', ahoraIso);
+                formData.append('placa', placaVal.toUpperCase());
+                formData.append('cliente', clienteVal);
+                formData.append('km', kmVal);
+                formData.append('producto', document.getElementById('producto').value);
+                formData.append('ppu', ppuVal);
+                formData.append('volumen', volVal);
+                formData.append('dinero', dinVal);
+                formData.append('autorizacion', autorizacionVal);
+                formData.append('consecutivo', consecutivoVal);
+                formData.append('tipoEvento', 'IMPRESION');
+                formData.append('vecesImpreso', '1');
+
+                fetch(scriptURL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: formData
+                }).catch(error => console.error('Error al sincronizar con Sheet:', error));
+
+                setTimeout(() => {
+                    try {
+                        window.print();
+                    } finally {
+                        document.getElementById('posForm').reset();
+                        document.getElementById('producto').value = 'DIESEL';
+                        cambiarProductoYPrecio();
+
+                        if (btn) {
+                            btn.innerText = "🖨️ Imprimir Ticket y Guardar";
+                            btn.disabled = false;
+                        }
+                    }
+                }, 600);
+            } catch (err) {
+                console.error('Error en procesarImpresionYGuardar:', err);
+                if (btn) {
+                    btn.innerText = "🖨️ Imprimir Ticket y Guardar";
+                    btn.disabled = false;
+                }
+            }
+        }
+    </script>
+
+    <!-- MÓDULO INDEPENDIENTE DE REIMPRESIÓN Y BÚSQUEDA POR PLACA (ÚLTIMOS 10) -->
+    <script>
+        const STORAGE_TICKETS_KEY = 'eds_orquideas_tickets_v1';
+        const LIMITE_ULTIMOS_REGISTROS = 10;
+        let memoriaTicketsRespaldo = [];
+        let baseRemotaCargada = false;
+
+        function obtenerClaveTicket(ticket) {
+            if (!ticket) return '';
+            if (ticket.idRegistro) return String(ticket.idRegistro).trim();
+            if (ticket.consecutivo) return String(ticket.consecutivo).trim();
+            return `${ticket.placa || ''}|${ticket.fecha || ''}|${ticket.hora || ''}|${ticket.dinero || ''}`.trim();
+        }
+
+        function activarModulo(nombreModulo) {
+            try {
+                const secFact = document.getElementById('modulo-facturacion');
+                const secReimp = document.getElementById('modulo-reimpresion');
+                const tabFact = document.getElementById('tabFacturacion');
+                const tabReimp = document.getElementById('tabReimpresion');
+
+                if (secFact) secFact.classList.toggle('active', nombreModulo === 'facturacion');
+                if (secReimp) secReimp.classList.toggle('active', nombreModulo === 'reimpresion');
+                if (tabFact) tabFact.classList.toggle('active', nombreModulo === 'facturacion');
+                if (tabReimp) tabReimp.classList.toggle('active', nombreModulo === 'reimpresion');
+
+                if (nombreModulo === 'reimpresion') {
+                    renderizarTicketsGuardados();
+                    cargarTicketsDesdeBaseRemota(true);
+                }
+            } catch (e) {
+                console.error('Error al cambiar módulo:', e);
+            }
+        }
+
+        function manejarBusquedaTicket() {
+            renderizarTicketsGuardados();
+            if (!baseRemotaCargada) {
+                cargarTicketsDesdeBaseRemota(false);
+            }
+        }
+
+        function obtenerTicketsGuardados() {
+            try {
+                const raw = localStorage.getItem(STORAGE_TICKETS_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) {
+                        memoriaTicketsRespaldo = parsed;
+                        return parsed;
+                    }
+                }
+            } catch (e) {}
+            return memoriaTicketsRespaldo;
+        }
+
+        function guardarTicketLocal(ticket) {
+            const clave = obtenerClaveTicket(ticket);
+            const listaActual = obtenerTicketsGuardados();
+            const anterior = listaActual.find(item => obtenerClaveTicket(item) === clave);
+            const veces = ticket.vecesImpreso || ((anterior && anterior.vecesImpreso) ? anterior.vecesImpreso : 1);
+
+            const registroActualizado = {
+                ...ticket,
+                idRegistro: clave,
+                vecesImpreso: veces,
+                ultimaImpresion: new Date().toLocaleString('es-CO')
+            };
+
+            const filtrada = listaActual.filter(item => obtenerClaveTicket(item) !== clave);
+            filtrada.unshift(registroActualizado);
+            const recortada = filtrada.slice(0, 200);
+            memoriaTicketsRespaldo = recortada;
+
+            try {
+                localStorage.setItem(STORAGE_TICKETS_KEY, JSON.stringify(recortada));
+            } catch (e) {}
+            return registroActualizado;
+        }
+
+        function normalizarListaTickets(rawLista) {
+            if (!Array.isArray(rawLista)) return [];
+            return rawLista.map((item, idx) => {
+                const placa = String(item.placa || '').trim().toUpperCase();
+                const consecutivo = String(item.consecutivo || item.idRegistro || (idx + 1)).trim();
+                const fecha = String(item.fecha || '').trim();
+                const hora = String(item.hora || '').trim();
+                const dinero = String(item.dinero || '0').trim();
+                const idRegistro = String(item.idRegistro || `${consecutivo}|${placa}|${fecha}|${hora}|${dinero}`).trim();
+                return {
+                    ...item,
+                    idRegistro,
+                    consecutivo,
+                    placa,
+                    cliente: String(item.cliente || '').trim(),
+                    km: String(item.km || '0').trim(),
+                    producto: String(item.producto || 'DIESEL').trim(),
+                    ppu: String(item.ppu || '').trim(),
+                    volumen: String(item.volumen || '0').trim(),
+                    dinero,
+                    autorizacion: String(item.autorizacion || '').trim(),
+                    vecesImpreso: parseInt(item.vecesImpreso, 10) || 1
+                };
+            }).filter(t => t.placa || t.cliente || t.consecutivo);
+        }
+
+        function fusionarTicketsRemotos(ticketsRemotos, fuenteTexto = '') {
+            const estadoEl = document.getElementById('estadoSincronizacionBase');
+            const normalizados = normalizarListaTickets(ticketsRemotos);
+            if (!normalizados.length) return false;
+
+            const locales = obtenerTicketsGuardados();
+            const combinados = [...normalizados];
+
+            locales.forEach(loc => {
+                const clave = obtenerClaveTicket(loc);
+                if (!clave) return;
+                const idx = combinados.findIndex(c => obtenerClaveTicket(c) === clave);
+                if (idx === -1) {
+                    combinados.push(loc);
+                } else if (loc.vecesImpreso && loc.vecesImpreso > 1) {
+                    combinados[idx].vecesImpreso = Math.max(combinados[idx].vecesImpreso || 1, loc.vecesImpreso);
+                }
+            });
+
+            const recortada = combinados.slice(0, 200);
+            memoriaTicketsRespaldo = recortada;
+            try {
+                localStorage.setItem(STORAGE_TICKETS_KEY, JSON.stringify(recortada));
+            } catch (e) {}
+
+            baseRemotaCargada = true;
+            if (estadoEl) {
+                estadoEl.innerText = `Últimos ${LIMITE_ULTIMOS_REGISTROS} registros disponibles (${recortada.length} en base)${fuenteTexto ? ' · ' + fuenteTexto : ''}`;
+            }
+            renderizarTicketsGuardados();
+            return true;
+        }
+
+        function cargarTicketsDesdeBaseRemota(forzar = false) {
+            const estadoEl = document.getElementById('estadoSincronizacionBase');
+            if (baseRemotaCargada && !forzar) {
+                renderizarTicketsGuardados();
+                return;
+            }
+            if (estadoEl) estadoEl.innerText = "Consultando últimos 10 registros de FAC EDS...";
+
+            const urlFetch = `${scriptURL}?action=listarTickets&_=${Date.now()}`;
+            fetch(urlFetch, { method: 'GET', cache: 'no-store' })
+                .then(res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                })
+                .then(data => {
+                    const lista = Array.isArray(data) ? data : (data && Array.isArray(data.tickets) ? data.tickets : []);
+                    if (lista.length > 0) {
+                        fusionarTicketsRemotos(lista, 'Apps Script');
+                    } else {
+                        cargarViaJSONP(data && data.error ? `Error Apps Script: ${data.error}` : "Sin filas en respuesta");
+                    }
+                })
+                .catch(err => {
+                    cargarViaJSONP(err && err.message ? err.message : "Error de red");
+                });
+        }
+
+        function cargarViaJSONP(motivoFetch) {
+            const callbackName = 'edsCallback_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+            const scriptTag = document.createElement('script');
+            let completado = false;
+
+            const limpiar = () => {
+                try { delete window[callbackName]; } catch (e) {}
+                if (scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
+            };
+
+            const activarRespaldoHoja = () => {
+                cargarDesdeCSVHoja(motivoFetch);
+            };
+
+            const timer = setTimeout(() => {
+                if (completado) return;
+                completado = true;
+                limpiar();
+                activarRespaldoHoja();
+            }, 3500);
+
+            window[callbackName] = function (data) {
+                if (completado) return;
+                completado = true;
+                clearTimeout(timer);
+                limpiar();
+                const lista = Array.isArray(data) ? data : (data && Array.isArray(data.tickets) ? data.tickets : []);
+                if (lista.length > 0) {
+                    fusionarTicketsRemotos(lista, 'JSONP');
+                } else {
+                    activarRespaldoHoja(data && data.error ? `Error JSONP: ${data.error}` : motivoFetch);
+                }
+            };
+
+            scriptTag.onerror = function () {
+                if (completado) return;
+                completado = true;
+                clearTimeout(timer);
+                limpiar();
+                activarRespaldoHoja(motivoFetch);
+            };
+
+            scriptTag.src = `${scriptURL}?action=listarTickets&callback=${callbackName}&_=${Date.now()}`;
+            document.body.appendChild(scriptTag);
+        }
+
+        function parsearLineaCSV(linea) {
+            const resultado = [];
+            let actual = '';
+            let entreComillas = false;
+            for (let i = 0; i < linea.length; i++) {
+                const ch = linea[i];
+                if (ch === '"') {
+                    if (entreComillas && linea[i + 1] === '"') {
+                        actual += '"';
+                        i++;
+                    } else {
+                        entreComillas = !entreComillas;
+                    }
+                } else if (ch === ',' && !entreComillas) {
+                    resultado.push(actual.trim());
+                    actual = '';
+                } else {
+                    actual += ch;
+                }
+            }
+            resultado.push(actual.trim());
+            return resultado;
+        }
+
+        function cargarDesdeCSVHoja(motivoFetch) {
+            const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}&_=${Date.now()}`;
+
+            fetch(csvUrl, { method: 'GET', cache: 'no-store' })
+                .then(res => {
+                    if (!res.ok) throw new Error(`CSV HTTP ${res.status}`);
+                    return res.text();
+                })
+                .then(csvText => {
+                    const lineas = csvText.split(/\r?\n/).filter(l => l.trim() !== '');
+                    if (lineas.length <= 1) {
+                        cargarDesdeGoogleSheetGViz(motivoFetch);
+                        return;
+                    }
+
+                    const filasDatos = lineas.slice(1).map(parsearLineaCSV);
+                    const invertidas = [...filasDatos].reverse();
+                    const convertidos = [];
+
+                    for (let i = 0; i < invertidas.length && convertidos.length < 100; i++) {
+                        const c = invertidas[i];
+                        const fechaCompleta = c[0] || '';
+                        const placa = (c[1] || '').toUpperCase().trim();
+                        const cliente = (c[2] || '').trim();
+                        const km = (c[3] || '0').trim();
+                        const producto = (c[4] || 'DIESEL').trim();
+                        const ppu = (c[5] || '').trim();
+                        const volumen = (c[6] || '0').trim();
+                        const dinero = (c[7] || '0').trim();
+                        const autorizacion = (c[8] || '').trim();
+                        const consecutivoCol = (c[9] || '').trim();
+
+                        if (!placa && !cliente && !consecutivoCol) continue;
+
+                        const idxComa = fechaCompleta.indexOf(',');
+                        const fechaTxt = idxComa !== -1 ? fechaCompleta.slice(0, idxComa).trim() : fechaCompleta.trim();
+                        const horaTxt = idxComa !== -1 ? fechaCompleta.slice(idxComa + 1).trim() : '';
+                        const filaNum = filasDatos.length - i + 1;
+
+                        convertidos.push({
+                            idRegistro: `F${filaNum}-${placa}-${consecutivoCol || dinero}`,
+                            consecutivo: consecutivoCol || String(filaNum),
+                            fecha: fechaTxt,
+                            hora: horaTxt,
+                            placa,
+                            cliente,
+                            km,
+                            producto,
+                            ppu,
+                            volumen,
+                            dinero,
+                            autorizacion,
+                            vecesImpreso: 1
+                        });
+                    }
+
+                    if (convertidos.length > 0) {
+                        fusionarTicketsRemotos(convertidos, 'FAC EDS');
+                    } else {
+                        cargarDesdeGoogleSheetGViz(motivoFetch);
+                    }
+                })
+                .catch(() => {
+                    cargarDesdeGoogleSheetGViz(motivoFetch);
+                });
+        }
+
+        function cargarDesdeGoogleSheetGViz(motivoFetch) {
+            const estadoEl = document.getElementById('estadoSincronizacionBase');
+            const gvizCallback = 'gvizCb_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+            const scriptTag = document.createElement('script');
+            let listo = false;
+
+            const limpiar = () => {
+                try { delete window[gvizCallback]; } catch (e) {}
+                if (scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
+            };
+
+            const timer = setTimeout(() => {
+                if (listo) return;
+                listo = true;
+                limpiar();
+                if (estadoEl) {
+                    estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales (${motivoFetch})`;
+                }
+            }, 4000);
+
+            window[gvizCallback] = function (resp) {
+                if (listo) return;
+                listo = true;
+                clearTimeout(timer);
+                limpiar();
+
+                try {
+                    const table = resp && resp.table;
+                    const rows = (table && Array.isArray(table.rows)) ? table.rows : [];
+                    const invertidas = [...rows].reverse();
+                    const convertidos = [];
+
+                    for (let i = 0; i < invertidas.length && convertidos.length < 100; i++) {
+                        const c = invertidas[i].c || [];
+                        const val = (idx) => {
+                            const cell = c[idx];
+                            if (!cell) return '';
+                            return cell.f !== undefined && cell.f !== null ? String(cell.f).trim() : String(cell.v ?? '').trim();
+                        };
+
+                        const fechaCompleta = val(0);
+                        const placa = val(1).toUpperCase();
+                        const cliente = val(2);
+                        const km = val(3) || '0';
+                        const producto = val(4) || 'DIESEL';
+                        const ppu = val(5) || '';
+                        const volumen = val(6) || '0';
+                        const dinero = val(7) || '0';
+                        const autorizacion = val(8) || '';
+                        const consecutivoCol = val(9) || '';
+
+                        if (!placa && !cliente && !consecutivoCol) continue;
+
+                        const idxComa = fechaCompleta.indexOf(',');
+                        const fechaTxt = idxComa !== -1 ? fechaCompleta.slice(0, idxComa).trim() : fechaCompleta.trim();
+                        const horaTxt = idxComa !== -1 ? fechaCompleta.slice(idxComa + 1).trim() : '';
+                        const filaNum = rows.length - i + 1;
+
+                        convertidos.push({
+                            idRegistro: `F${filaNum}-${placa}-${consecutivoCol || dinero}`,
+                            consecutivo: consecutivoCol || String(filaNum),
+                            fecha: fechaTxt,
+                            hora: horaTxt,
+                            placa: placa,
+                            cliente: cliente,
+                            km: km,
+                            producto: producto,
+                            ppu: ppu,
+                            volumen: volumen,
+                            dinero: dinero,
+                            autorizacion: autorizacion,
+                            vecesImpreso: 1
+                        });
+                    }
+
+                    if (convertidos.length > 0) {
+                        fusionarTicketsRemotos(convertidos, 'Hoja FAC EDS');
+                    } else if (estadoEl) {
+                        estadoEl.innerText = `No se encontraron filas en ${SHEET_NAME} (${motivoFetch}).`;
+                    }
+                } catch (e) {
+                    if (estadoEl) {
+                        estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales (${motivoFetch}).`;
+                    }
+                }
+            };
+
+            scriptTag.onerror = function () {
+                if (listo) return;
+                listo = true;
+                clearTimeout(timer);
+                limpiar();
+                if (estadoEl) {
+                    estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales (${motivoFetch}).`;
+                }
+            };
+
+            const sheetParam = encodeURIComponent(SHEET_NAME);
+            scriptTag.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${sheetParam}&tqx=responseHandler:${gvizCallback}&_=${Date.now()}`;
+            document.body.appendChild(scriptTag);
+        }
+
+        function registrarReimpresionEnDrive(ticket) {
+            const ahoraReimpresion = new Date().toLocaleString('es-CO');
+            const payloadReimpresion = new URLSearchParams();
+            payloadReimpresion.append('fechaHora', ahoraReimpresion);
+            payloadReimpresion.append('fechaHoraReimpresion', ahoraReimpresion);
+            payloadReimpresion.append('fechaHoraOriginal', `${ticket.fecha} ${ticket.hora}`);
+            payloadReimpresion.append('placa', ticket.placa);
+            payloadReimpresion.append('cliente', ticket.cliente);
+            payloadReimpresion.append('km', ticket.km || '0');
+            payloadReimpresion.append('producto', ticket.producto);
+            payloadReimpresion.append('ppu', ticket.ppu);
+            payloadReimpresion.append('volumen', ticket.volumen);
+            payloadReimpresion.append('dinero', ticket.dinero);
+            payloadReimpresion.append('autorizacion', ticket.autorizacion || '');
+            payloadReimpresion.append('consecutivo', ticket.consecutivo);
+            payloadReimpresion.append('tipoEvento', 'REIMPRESION');
+            payloadReimpresion.append('vecesImpreso', String(ticket.vecesImpreso));
+
+            fetch(scriptURL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: payloadReimpresion
+            }).catch(error => console.error('Error al registrar reimpresión en Drive:', error));
+        }
+
+        function obtenerTicketsFiltradosUltimos10() {
+            const filtro = (document.getElementById('filtroTicket')?.value || '').trim().toUpperCase();
+            const filtroSinEspacios = filtro.replace(/\s+/g, '');
+            const todos = obtenerTicketsGuardados();
+
+            if (!filtro) {
+                return todos.slice(0, LIMITE_ULTIMOS_REGISTROS);
+            }
+
+            return todos
+                .filter(t => {
+                    const placaTxt = String(t.placa || '').toUpperCase();
+                    const placaSinEspacios = placaTxt.replace(/\s+/g, '');
+                    return placaSinEspacios.includes(filtroSinEspacios) ||
+                           placaTxt.includes(filtro) ||
+                           String(t.consecutivo || '').toUpperCase().includes(filtro) ||
+                           String(t.cliente || '').toUpperCase().includes(filtro) ||
+                           String(t.autorizacion || '').toUpperCase().includes(filtro);
+                })
+                .slice(0, LIMITE_ULTIMOS_REGISTROS);
+        }
+
+        function renderizarTicketsGuardados() {
+            const contenedor = document.getElementById('listaTicketsGuardados');
+            if (!contenedor) return;
+
+            const tickets = obtenerTicketsFiltradosUltimos10();
+
+            if (!tickets.length) {
+                contenedor.innerHTML = '<div class="empty-msg">No hay tickets que coincidan con la búsqueda.</div>';
+                return;
+            }
+
+            contenedor.innerHTML = tickets.map((t, idx) => {
+                const clave = obtenerClaveTicket(t);
+                const encodedClave = encodeURIComponent(clave);
+                return `
+                    <div class="ticket-item" data-ticket-index="${idx}">
+                        <div class="ticket-meta">
+                            <strong>Placa: ${t.placa || 'SIN PLACA'}</strong> · #${t.consecutivo} · $${t.dinero}<br>
+                            ${t.cliente} (${t.producto} - ${String(t.volumen).replace('.', ',')} G.)<br>
+                            <small>${t.fecha} ${t.hora}</small><br>
+                            <span class="print-badge">Impresiones: ${t.vecesImpreso || 1}</span>
+                        </div>
+                        <button type="button" class="btn-reprint" data-clave="${encodedClave}" onclick="ejecutarReimpresion(decodeURIComponent(this.getAttribute('data-clave')))">
+                            🖨️ Reimprimir
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function reimprimirPorConsecutivoDirecto() {
+            const valor = (document.getElementById('filtroTicket')?.value || '').trim().toUpperCase();
+            if (!valor) {
+                alert("Ingrese la placa o número de consecutivo para reimprimir.");
+                return;
+            }
+            const valorSinEspacios = valor.replace(/\s+/g, '');
+            const candidatos = obtenerTicketsFiltradosUltimos10();
+            const encontrado =
+                candidatos.find(t => String(t.placa || '').toUpperCase().replace(/\s+/g, '') === valorSinEspacios) ||
+                candidatos.find(t => String(t.placa || '').toUpperCase().includes(valor)) ||
+                candidatos.find(t => String(t.consecutivo || '').toUpperCase() === valor) ||
+                candidatos.find(t => String(t.consecutivo || '').toUpperCase().includes(valor));
+
+            if (!encontrado) {
+                alert("No se encontró un ticket reciente con esa placa o consecutivo.");
+                return;
+            }
+            ejecutarReimpresion(obtenerClaveTicket(encontrado));
+        }
+
+        function ejecutarReimpresion(claveBuscada) {
+            const claveNorm = String(claveBuscada || '').trim().toUpperCase();
+            const ticket = obtenerTicketsGuardados().find(t => obtenerClaveTicket(t).toUpperCase() === claveNorm);
+            if (!ticket) {
+                alert("Ticket no encontrado.");
+                return;
+            }
+
+            const totalImpresiones = (parseInt(ticket.vecesImpreso, 10) || 1) + 1;
+            const ticketActualizado = guardarTicketLocal({
+                ...ticket,
+                vecesImpreso: totalImpresiones
+            });
+
+            registrarReimpresionEnDrive(ticketActualizado);
+            renderizarTicketsGuardados();
+
+            document.getElementById('t-num').innerText = ticketActualizado.consecutivo;
+            document.getElementById('t-fecha').innerText = ticketActualizado.fecha;
+            document.getElementById('t-hora').innerText = ticketActualizado.hora;
+            document.getElementById('t-placa').innerText = ticketActualizado.placa;
+            document.getElementById('t-cliente').innerText = ticketActualizado.cliente;
+            document.getElementById('t-km').innerText = ticketActualizado.km || '0';
+            actualizarAutorizacionEnTicket(ticketActualizado.autorizacion);
+            document.getElementById('t-producto').innerText = ticketActualizado.producto;
+            document.getElementById('t-ppu').innerText = ticketActualizado.ppu;
+            document.getElementById('t-volumen').innerText = String(ticketActualizado.volumen).replace('.', ',');
+            document.getElementById('t-dinero').innerText = ticketActualizado.dinero;
+            document.getElementById('t-leyenda').innerText = "** COPIA **";
+
+            setTimeout(() => {
+                window.print();
+            }, 250);
+        }
+
+        function enlazarEventosDirectos() {
+            const tabFact = document.getElementById('tabFacturacion');
+            const tabReimp = document.getElementById('tabReimpresion');
+            const btnImprimir = document.getElementById('btnImprimir');
+            const btnRefrescarBase = document.getElementById('btnRefrescarBase');
+            const btnReimprimirDirecto = document.getElementById('btnReimprimirDirecto');
+
+            if (tabFact) tabFact.addEventListener('click', (e) => { e.preventDefault(); activarModulo('facturacion'); });
+            if (tabReimp) tabReimp.addEventListener('click', (e) => { e.preventDefault(); activarModulo('reimpresion'); });
+            if (btnImprimir) btnImprimir.addEventListener('click', (e) => { e.preventDefault(); procesarImpresionYGuardar(); });
+            if (btnRefrescarBase) btnRefrescarBase.addEventListener('click', (e) => { e.preventDefault(); cargarTicketsDesdeBaseRemota(true); });
+            if (btnReimprimirDirecto) btnReimprimirDirecto.addEventListener('click', (e) => { e.preventDefault(); reimprimirPorConsecutivoDirecto(); });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            enlazarEventosDirectos();
+            renderizarTicketsGuardados();
         });
-    });
-
-    // REINICIAR EL FORMULARIO DESDE CERO
-    function reiniciarFormulario() {
-        // Nos aseguramos de borrar cualquier rastro de borrador al empezar de cero
-        localStorage.removeItem(LOCAL_RESPUESTAS_KEY);
-        localStorage.removeItem(LOCAL_BLOQUE_KEY);
-
-        document.getElementById('sheetForm').reset();
-        
-        const campos = document.querySelectorAll('#sheetForm input, #sheetForm select');
-        campos.forEach(campo => {
-            campo.value = "";
-            campo.className = "";
-        });
-
-        const erroresTexto = document.querySelectorAll('.error-texto');
-        erroresTexto.forEach(span => span.style.display = "none");
-
-        correoValido = false;
-        celularValido = false;
-
-        const idSeccionActual = listaBloquesId[indexBloqueActual];
-        const bloqueAnterior = document.querySelector(`.bloque-seccion-${idSeccionActual}`);
-        if (bloqueAnterior) bloqueAnterior.classList.remove("active");
-        
-        indexBloqueActual = 0;
-        actualizarVisualizacionBloques();
-
-        document.getElementById('decisionScreen').style.display = 'none';
-        document.getElementById('formContent').style.display = 'block';
-        document.getElementById('statusMensaje').style.display = "none";
-    }
-
-    // SALIR DEFINITIVAMENTE
-    function salirDelFormulario() {
-        // Limpiamos los borradores
-        localStorage.removeItem(LOCAL_RESPUESTAS_KEY);
-        localStorage.removeItem(LOCAL_BLOQUE_KEY);
-
-        document.getElementById('decisionScreen').style.display = 'none';
-        const msgDiv = document.getElementById('statusMensaje');
-        msgDiv.innerText = "¡Muchas gracias por completar el registro! El proceso ha finalizado correctamente.";
-        msgDiv.className = "mensaje exito";
-        msgDiv.style.display = "block";
-    }
-</script>
-
+    </script>
 </body>
 </html>
