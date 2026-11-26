@@ -150,7 +150,7 @@
             padding: 0.75rem;
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            font-size: 16px; /* Evita zoom automático molesto en iOS */
+            font-size: 16px;
             outline: none;
             transition: border-color 0.2s;
             background-color: #ffffff;
@@ -364,7 +364,7 @@
         <img class="logo-biomax" src="logo biomax.png" alt="Logo Biomax" style="max-width: 140px; height: auto;" onerror="respaldoLogo(this)">
         <h1>EDS Orquídeas <br><span style="font-size: 1rem; font-weight: normal; color: #475569;">Facturación POS</span></h1>
         <div class="header-actions">
-            <span class="version-badge">V25.1127</span>
+            <span class="version-badge">V25.1130</span>
         </div>
     </header>
 
@@ -880,8 +880,8 @@ Dinero : $<span id="t-dinero">165386</span>
                         cargarViaJSONP(data && data.error ? `Error Apps Script: ${data.error}` : "Sin filas en JSON");
                     }
                 })
-                .catch(() => {
-                    cargarViaJSONP('Respaldo JSONP');
+                .catch(err => {
+                    cargarViaJSONP(err && err.message ? err.message : 'Respaldo JSONP');
                 });
         }
 
@@ -1018,8 +1018,8 @@ Dinero : $<span id="t-dinero">165386</span>
                         cargarDesdeGoogleSheetGViz(motivoFetch);
                     }
                 })
-                .catch(() => {
-                    cargarDesdeGoogleSheetGViz(motivoFetch);
+                .catch(errCsv => {
+                    cargarDesdeGoogleSheetGViz(`${motivoFetch} / ${errCsv && errCsv.message ? errCsv.message : 'CSV bloqueado'}`);
                 });
         }
 
@@ -1039,7 +1039,7 @@ Dinero : $<span id="t-dinero">165386</span>
                 listo = true;
                 limpiar();
                 if (estadoEl) {
-                    estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales`;
+                    estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales (${motivoFetch})`;
                 }
             }, 6000);
 
@@ -1102,11 +1102,11 @@ Dinero : $<span id="t-dinero">165386</span>
                     if (convertidos.length > 0) {
                         fusionarTicketsRemotos(convertidos, 'Hoja FAC EDS');
                     } else if (estadoEl) {
-                        estadoEl.innerText = `No se encontraron filas en ${SHEET_NAME}.`;
+                        estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales (${motivoFetch})`;
                     }
                 } catch (e) {
                     if (estadoEl) {
-                        estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales`;
+                        estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales (${motivoFetch})`;
                     }
                 }
             };
@@ -1117,7 +1117,7 @@ Dinero : $<span id="t-dinero">165386</span>
                 clearTimeout(timer);
                 limpiar();
                 if (estadoEl) {
-                    estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales`;
+                    estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales (${motivoFetch})`;
                 }
             };
 
