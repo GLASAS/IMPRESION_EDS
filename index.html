@@ -1,187 +1,287 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Módulo de Tickets Térmicos POS</title>
-  <link rel="stylesheet" href="css/ticket.css" />
-</head>
-<body>
+import os
+import re
+import smtplib
+import socket
+import subprocess
+import sys
+import time
+import tkinter as tk
+from tkinter import filedialog, messagebox
 
-  <div class="layout">
-    <!-- COLUMNA IZQUIERDA: FORMULARIO E HISTORIAL -->
-    <div class="no-print col-izquierda">
+import dns.resolver
+import openpyxl
+import requests
 
-      <!-- FORMULARIO DEL TICKET -->
-      <div class="panel">
-        <div class="panel-header">
-          <h1>Generador y Recarga de Tickets</h1>
-          <span id="estado-modo" class="badge">NUEVO TICKET</span>
-        </div>
+EMAIL_REGEX = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
+TELEFONO_E164_REGEX = re.compile(r"^[1-9]\d{6,14}$")
 
-        <details class="config-box">
-          <summary>Configurar Encabezado del Establecimiento (se guarda automáticamente)</summary>
-          <div class="grid-2 config-grid">
-            <div>
-              <label for="enc-negocio">Nombre del Negocio / Estación</label>
-              <input type="text" id="enc-negocio" placeholder="EDS ORQUÍDEAS" />
-            </div>
-            <div>
-              <label for="enc-nit">NIT / RUT</label>
-              <input type="text" id="enc-nit" placeholder="900.000.000-1" />
-            </div>
-            <div>
-              <label for="enc-direccion">Dirección</label>
-              <input type="text" id="enc-direccion" placeholder="Calle 161 # 18 - 30, Bogotá" />
-            </div>
-            <div>
-              <label for="enc-telefono">Teléfono / WhatsApp</label>
-              <input type="text" id="enc-telefono" placeholder="3208123125" />
-            </div>
-          </div>
-        </details>
+# Pon en True solo si tu red permite conexión saliente al puerto 25
+PROBAR_SMTP_ACTIVO = True
 
-        <div class="grid-3">
-          <div>
-            <label for="tck-id">Nro. de Ticket (ID)</label>
-            <input type="text" id="tck-id" readonly class="input-readonly" />
-          </div>
-          <div>
-            <label for="tck-fecha">Fecha y Hora</label>
-            <input type="text" id="tck-fecha" />
-          </div>
-          <div>
-            <label for="tck-pago">Forma de Pago / Cuenta</label>
-            <select id="tck-pago">
-              <option value="Efectivo">Efectivo</option>
-              <option value="Crédito Corporativo">Crédito Corporativo</option>
-              <option value="Datafono / Tarjeta">Datafono / Tarjeta</option>
-              <option value="Transferencia / QR">Transferencia / QR</option>
-            </select>
-          </div>
-        </div>
 
-        <div class="grid-2">
-          <div>
-            <label for="tck-cliente">Cliente / Empresa</label>
-            <input type="text" id="tck-cliente" placeholder="Nombre del cliente o razón social" />
-          </div>
-          <div>
-            <label for="tck-referencia">Placa / Vale / Referencia</label>
-            <input type="text" id="tck-referencia" placeholder="Ej. ABC-123 / Vale #0045" />
-          </div>
-        </div>
+def log(mensaje: str) -> None:
+    print(f"[{time.strftime('%H:%M:%S')}] {mensaje}", flush=True)
 
-        <!-- DETALLE DE ÍTEMS -->
-        <div class="items-box">
-          <div class="items-header">
-            <span>Detalle de Productos / Conceptos</span>
-            <button type="button" id="btn-agregar-item" class="btn btn-outline btn-sm">
-              + Agregar ítem
-            </button>
-          </div>
-          <div id="contenedor-items"></div>
-        </div>
 
-        <div>
-          <label for="tck-obs">Observaciones / Kilometraje / Conductor (opcional)</label>
-          <input type="text" id="tck-obs" placeholder="Notas adicionales en el ticket..." />
-        </div>
+def seleccionar_archivo_excel() -> str:
+    root = tk.Tk()
+    root.withdraw()
+    root.wm_attributes("-topmost", 1)
+    ruta = filedialog.askopenfilename(
+        title="Selecciona el archivo de Excel",
+        filetypes=[("Archivos de Excel", "*.xlsx")],
+    )
+    root.destroy()
+    return ruta
 
-        <div class="actions-bar">
-          <button type="button" id="btn-guardar-imprimir" class="btn btn-primary">
-            Guardar e Imprimir Ticket
-          </button>
-          <button type="button" id="btn-guardar-solo" class="btn btn-secondary">
-            Guardar Sin Imprimir
-          </button>
-          <button type="button" id="btn-nuevo-ticket" class="btn btn-outline">
-            Nuevo Ticket en Blanco
-          </button>
-        </div>
-      </div>
 
-      <!-- HISTORIAL PARA VOLVER A CARGAR TICKETS GUARDADOS -->
-      <div class="panel">
-        <div class="historial-header">
-          <h2>Tickets Guardados (Recargar / Reimprimir)</h2>
-          <div class="historial-tools">
-            <button type="button" id="btn-exportar-json" class="btn btn-outline btn-xs">
-              Exportar JSON
-            </button>
-            <label class="btn btn-outline btn-xs label-file">
-              Importar JSON
-              <input type="file" id="input-importar-json" accept=".json" hidden />
-            </label>
-          </div>
-        </div>
+def sintaxis_valida(email: str) -> bool:
+    return bool(EMAIL_REGEX.match(email.strip()))
 
-        <div class="search-box">
-          <input
-            type="text"
-            id="buscador-tickets"
-            placeholder="Buscar por ID de ticket, cliente, placa o referencia..."
-          />
-        </div>
 
-        <div id="lista-tickets" class="lista-tickets"></div>
-      </div>
-    </div>
+def obtener_mx_reales(dominio: str) -> list[str]:
+    """Devuelve solo hosts MX reales; si no hay MX, devuelve lista vacía."""
+    dominio = dominio.lower().strip()
+    if not dominio or "." not in dominio:
+        return []
 
-    <!-- COLUMNA DERECHA: VISTA PREVIA EXACTA DE IMPRESIÓN (7.5 CM) -->
-    <div class="panel preview-wrapper">
-      <div class="no-print preview-header">
-        <h2>Vista Previa (7.5 cm POS)</h2>
-        <button type="button" id="btn-imprimir-rapido" class="btn btn-primary btn-sm">
-          Imprimir Ahora
-        </button>
-      </div>
+    # 1) Consulta directa MX con dnspython
+    try:
+        resolver = dns.resolver.Resolver(configure=True)
+        resolver.timeout = 2.0
+        resolver.lifetime = 3.0
+        respuestas = resolver.resolve(dominio, "MX")
+        ordenados = sorted(respuestas, key=lambda r: r.preference)
+        hosts = [str(r.exchange).rstrip(".").lower() for r in ordenados if str(r.exchange).strip()]
+        if hosts:
+            return hosts
+    except Exception:
+        pass
 
-      <div id="ticket-imprimible">
-        <div class="t-center t-bold t-titulo" id="prev-negocio">ESTACIÓN DE SERVICIO</div>
-        <div class="t-center" id="prev-nit"></div>
-        <div class="t-center" id="prev-direccion"></div>
-        <div class="t-center" id="prev-telefono"></div>
+    # 2) Respaldo con nslookup (soporta inglés y español)
+    try:
+        proc = subprocess.run(
+            ["nslookup", "-type=MX", dominio],
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+        hosts_ns: list[str] = []
+        for linea in (proc.stdout or "").splitlines():
+            l = linea.strip().lower()
+            if "mail exchanger" in l or "intercambiador de correo" in l or "mx preference" in l:
+                # Extrae el último token (el nombre del servidor MX)
+                partes = linea.replace("=", " ").replace(",", " ").split()
+                for token in reversed(partes):
+                    host_limpio = token.strip(".").lower()
+                    if "." in host_limpio and not host_limpio.replace(".", "").isdigit():
+                        hosts_ns.append(host_limpio)
+                        break
+        return hosts_ns
+    except Exception:
+        return []
 
-        <div class="t-sep-doble"></div>
 
-        <div class="t-row"><span>TICKET:</span><span class="t-bold" id="prev-id"></span></div>
-        <div class="t-row"><span>FECHA:</span><span id="prev-fecha"></span></div>
-        <div class="t-row"><span>PAGO:</span><span id="prev-pago"></span></div>
-        <div class="t-row"><span>IMPRESIÓN NRO:</span><span id="prev-impresiones">Original</span></div>
+def verificar_buzon_activo(email: str, mx_hosts: list[str], remitente: str = "verificador@ejemplo.com") -> tuple[str, str]:
+    """Paso 2: intenta determinar si el buzón está activo vía SMTP."""
+    if not PROBAR_SMTP_ACTIVO:
+        return "no_verificable_smtp", "Verificación SMTP desactivada"
 
-        <div class="t-sep-simple"></div>
+    ultimo_motivo = "Puerto 25 bloqueado o sin respuesta SMTP"
+    for host in mx_hosts[:2]:
+        try:
+            with smtplib.SMTP(host=host, port=25, timeout=3.0) as server:
+                server.ehlo_or_helo_if_needed()
+                code_from, _ = server.mail(remitente)
+                if code_from not in (250, 251):
+                    ultimo_motivo = f"{host} rechazó MAIL FROM ({code_from})"
+                    continue
 
-        <div><span class="t-bold">CLIENTE:</span> <span id="prev-cliente">-</span></div>
-        <div id="bloque-prev-ref"><span class="t-bold">REF/PLACA:</span> <span id="prev-referencia">-</span></div>
+                code_rcpt, msg_rcpt = server.rcpt(email)
+                msg = msg_rcpt.decode("utf-8", errors="replace") if isinstance(msg_rcpt, bytes) else str(msg_rcpt)
 
-        <div class="t-sep-simple"></div>
-        <div class="t-row t-bold">
-          <span>DESCRIPCIÓN</span>
-          <span>VALOR</span>
-        </div>
-        <div class="t-sep-simple"></div>
+                if code_rcpt in (250, 251):
+                    return "activo_smtp", f"{host} aceptó destinatario ({code_rcpt})"
+                if code_rcpt in (550, 551, 552, 553, 554):
+                    return "inexistente_smtp", f"{host} rechazó buzón ({code_rcpt}: {msg.strip()})"
 
-        <div id="prev-items"></div>
+                ultimo_motivo = f"{host} respondió {code_rcpt}"
+        except (
+            smtplib.SMTPServerDisconnected,
+            smtplib.SMTPConnectError,
+            smtplib.SMTPHeloError,
+            TimeoutError,
+            socket.error,
+            OSError,
+        ) as exc:
+            ultimo_motivo = f"{host} ({type(exc).__name__})"
+            continue
 
-        <div class="t-sep-doble"></div>
-        <div class="t-row t-bold t-total">
-          <span>TOTAL:</span>
-          <span id="prev-total">$ 0</span>
-        </div>
-        <div class="t-sep-doble"></div>
+    return "no_verificable_smtp", ultimo_motivo
 
-        <div id="bloque-prev-obs" class="t-obs">
-          <span class="t-bold">OBS:</span> <span id="prev-obs"></span>
-          <div class="t-sep-simple"></div>
-        </div>
 
-        <div class="t-center t-footer">CONSERVE ESTE COMPROBANTE</div>
-        <div class="t-center">GRACIAS POR SU PREFERENCIA</div>
-      </div>
-    </div>
-  </div>
+def normalizar_whatsapp(valor: object, respaldo_tel: object = None) -> str:
+    origen = valor if (valor is not None and str(valor).strip() != "") else respaldo_tel
+    if isinstance(origen, float) and origen.is_integer():
+        texto = str(int(origen))
+    else:
+        texto = "" if origen is None else str(origen)
 
-  <script type="module" src="js/main.js"></script>
-</body>
-</html>
+    digitos = re.sub(r"\D", "", texto)
+    if len(digitos) == 10:
+        return f"57{digitos}"
+    return digitos
+
+
+def validar_whatsapp(numero: str, api_url: str | None = None, api_key: str | None = None) -> tuple[str, str]:
+    if not numero:
+        return "sin_whatsapp", "Sin número"
+    if not TELEFONO_E164_REGEX.match(numero):
+        return "numero_invalido", f"Formato no válido ({numero})"
+
+    if api_url and api_key:
+        try:
+            resp = requests.post(
+                api_url,
+                json={"phone": numero},
+                headers={"Authorization": f"Bearer {api_key}"},
+                timeout=6,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            activo = bool(data.get("exists"))
+            return ("activo_whatsapp" if activo else "no_registrado_whatsapp"), "Confirmado por proveedor"
+        except Exception as exc:
+            return "no_verificable_whatsapp", f"Error API: {exc}"
+
+    return "no_verificable_whatsapp", f"Conecta proveedor o revisa https://wa.me/{numero}"
+
+
+def procesar_excel(ruta_entrada: str, nombre_hoja: str = "Hoja1") -> str:
+    t_inicio = time.time()
+    log(f"Cargando workbook desde: {ruta_entrada}")
+    wb = openpyxl.load_workbook(ruta_entrada)
+    if nombre_hoja not in wb.sheetnames:
+        raise ValueError(f"No existe la hoja '{nombre_hoja}'. Hojas disponibles: {wb.sheetnames}")
+
+    ws = wb[nombre_hoja]
+    total_filas = ws.max_row
+    log(f"Workbook cargado. Filas en '{nombre_hoja}': {total_filas}")
+
+    encabezados = {
+        str(ws.cell(row=1, column=col).value).strip().upper(): col
+        for col in range(1, ws.max_column + 1)
+        if ws.cell(row=1, column=col).value is not None
+    }
+    col_tel = encabezados.get("TELEFONO", 3)
+    col_mail = encabezados.get("CORREO ELECTRONICO", 4)
+    col_wa = encabezados.get("WHATSAPP", 5)
+
+    ws.cell(row=1, column=col_wa, value="WHATSAPP")
+
+    nuevas_cols = [
+        "ESTADO_EXISTENCIA_CORREO",
+        "ESTADO_ACTIVO_CORREO",
+        "DETALLE_CORREO",
+        "ESTADO_WHATSAPP",
+        "DETALLE_WHATSAPP",
+    ]
+    col_inicio = max(ws.max_column, col_wa) + 1
+    for idx, titulo in enumerate(nuevas_cols):
+        ws.cell(row=1, column=col_inicio + idx, value=titulo)
+
+    filas_datos = []
+    dominios_validos_sintaxis = set()
+
+    for fila in range(2, total_filas + 1):
+        val_tel = ws.cell(row=fila, column=col_tel).value
+        val_mail = ws.cell(row=fila, column=col_mail).value
+        val_wa = ws.cell(row=fila, column=col_wa).value
+
+        if val_tel is None and val_mail is None and val_wa is None:
+            continue
+
+        email_str = "" if val_mail is None else str(val_mail).strip()
+        if email_str and sintaxis_valida(email_str):
+            dominios_validos_sintaxis.add(email_str.split("@", 1)[1].lower())
+
+        filas_datos.append((fila, val_tel, email_str, val_wa))
+
+    # Paso 1: verificar existencia real de MX por dominio único
+    log(f"Paso 1 - Verificando existencia MX de {len(dominios_validos_sintaxis)} dominios...")
+    mx_por_dominio: dict[str, list[str]] = {}
+    for idx, dom in enumerate(sorted(dominios_validos_sintaxis), start=1):
+        hosts = obtener_mx_reales(dom)
+        mx_por_dominio[dom] = hosts
+        estado_dom = f"MX: {hosts[0]}" if hosts else "SIN MX (NO EXISTE)"
+        log(f"  [{idx}/{len(dominios_validos_sintaxis)}] {dom} -> {estado_dom}")
+
+    # Paso 2: validar filas y comprobar si está activo
+    log(f"Paso 2 - Evaluando {len(filas_datos)} filas...")
+    for i, (fila, val_tel, email_str, val_wa) in enumerate(filas_datos, start=1):
+        if not email_str:
+            est_exist = "sin_correo"
+            est_activo = "no_aplica"
+            det_mail = "Celda de correo vacía"
+        elif not sintaxis_valida(email_str):
+            est_exist = "invalido_sintaxis"
+            est_activo = "inactivo_o_invalido"
+            det_mail = "Formato de correo inválido"
+        else:
+            dom = email_str.split("@", 1)[1].lower()
+            hosts = mx_por_dominio.get(dom, [])
+            if not hosts:
+                est_exist = "dominio_inexistente"
+                est_activo = "inactivo_o_inexistente"
+                det_mail = f"El dominio '{dom}' no tiene registros MX válidos"
+            else:
+                est_exist = "valido_dominio_existe"
+                est_activo, det_mail = verificar_buzon_activo(email_str, hosts)
+
+        num_wa = normalizar_whatsapp(val_wa, respaldo_tel=val_tel)
+        est_wa, det_wa = validar_whatsapp(num_wa)
+
+        if num_wa:
+            ws.cell(row=fila, column=col_wa, value=num_wa)
+        ws.cell(row=fila, column=col_inicio, value=est_exist)
+        ws.cell(row=fila, column=col_inicio + 1, value=est_activo)
+        ws.cell(row=fila, column=col_inicio + 2, value=det_mail)
+        ws.cell(row=fila, column=col_inicio + 3, value=est_wa)
+        ws.cell(row=fila, column=col_inicio + 4, value=det_wa)
+
+        if i % 100 == 0 or i == len(filas_datos):
+            log(f"  Progreso filas: {i}/{len(filas_datos)}")
+
+    base, ext = os.path.splitext(ruta_entrada)
+    ruta_salida = f"{base}_validado{ext}"
+    log(f"Guardando archivo en: {ruta_salida}")
+    wb.save(ruta_salida)
+    log(f"Listo en {time.time() - t_inicio:.1f} s.")
+    return ruta_salida
+
+
+if __name__ == "__main__":
+    try:
+        if len(sys.argv) > 1:
+            archivo = sys.argv[1]
+        else:
+            log("Abriendo selector de archivo...")
+            archivo = seleccionar_archivo_excel()
+
+        if not archivo:
+            log("No se seleccionó ningún archivo.")
+            sys.exit(0)
+
+        salida = procesar_excel(archivo, nombre_hoja="Hoja1")
+        log(f"Archivo generado: {salida}")
+        try:
+            root = tk.Tk()
+            root.withdraw()
+            root.wm_attributes("-topmost", 1)
+            messagebox.showinfo("Listo", f"Archivo generado:\n{salida}")
+            root.destroy()
+        except Exception:
+            pass
+    except Exception as exc:
+        log(f"ERROR: {type(exc).__name__}: {exc}")
+        input("Presiona Enter para cerrar...")
