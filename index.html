@@ -356,7 +356,7 @@
         <img class="logo-biomax" src="logo biomax.png" alt="Logo Biomax" style="max-width: 140px; height: auto;" onerror="respaldoLogo(this)">
         <h1>EDS Orquídeas <br><span style="font-size: 1rem; font-weight: normal; color: #475569;">Facturación POS</span></h1>
         <div class="header-actions">
-            <span class="version-badge">V26.1050</span>
+            <span class="version-badge">V25.1105</span>
         </div>
     </header>
 
@@ -493,11 +493,44 @@ Dinero : $<span id="t-dinero">165386</span>
         const SHEET_ID = "1kpCmuE1pzVlyd2xZhr7hyNnGUKaDI-pVZvHgB61pEYM";
         const SHEET_NAME = "FAC EDS";
         const SHEET_GID = "0";
-        const SCRIPT_URL_ACTUAL = "https://script.google.com/macros/s/AKfycby4fT2vVwezUG8TjlGOXpYv3djHniizhlO_QB8_LNDttdvnmFETpMnyX1EwfD9tmdVDTA/exec";
+        const SCRIPT_URL_ACTUAL = "https://script.google.com/macros/s/AKfycbwBoF_PJjYZr1Ij_mkQnsvZQr6ak6-rPkE7FsDJbYiTebMupVeNWXIiKpkv2J8DKjiCfg/exec";
         let scriptURL = SCRIPT_URL_ACTUAL;
         try {
             localStorage.setItem('google_sheet_url', SCRIPT_URL_ACTUAL);
         } catch (e) {}
+
+        let ultimaLlaveEnvio = '';
+        let ultimoTiempoEnvio = 0;
+        let procesandoImpresionLock = false;
+
+        function enviarEventoASheet(paramsObj, alTerminar) {
+            const ahoraMs = Date.now();
+            const llaveEnvio = `${paramsObj.tipoEvento || ''}|${paramsObj.consecutivo || ''}|${paramsObj.placa || ''}|${paramsObj.vecesImpreso || ''}`;
+            if (llaveEnvio === ultimaLlaveEnvio && (ahoraMs - ultimoTiempoEnvio) < 2000) {
+                if (typeof alTerminar === 'function') alTerminar(true);
+                return;
+            }
+            ultimaLlaveEnvio = llaveEnvio;
+            ultimoTiempoEnvio = ahoraMs;
+
+            const formData = new URLSearchParams();
+            Object.keys(paramsObj).forEach(k => {
+                formData.append(k, paramsObj[k] !== undefined && paramsObj[k] !== null ? String(paramsObj[k]) : '');
+            });
+
+            fetch(scriptURL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: formData
+            })
+                .then(() => {
+                    if (typeof alTerminar === 'function') alTerminar(true);
+                })
+                .catch(error => {
+                    console.error('Error al sincronizar con Sheet:', error);
+                    if (typeof alTerminar === 'function') alTerminar(false);
+                });
+        }
 
         const RUTAS_LOGO_RESPALDO = [
             './logo biomax.png',
@@ -549,6 +582,7 @@ Dinero : $<span id="t-dinero">165386</span>
         }
 
         function procesarImpresionYGuardar() {
+            if (procesandoImpresionLock) return;
             const btn = document.getElementById('btnImprimir');
             try {
                 const consecutivoVal = document.getElementById('consecutivo').value.trim();
@@ -572,6 +606,7 @@ Dinero : $<span id="t-dinero">165386</span>
                     return;
                 }
 
+                procesandoImpresionLock = true;
                 if (btn) {
                     btn.innerText = "Guardando e Imprimiendo...";
                     btn.disabled = true;
@@ -618,25 +653,20 @@ Dinero : $<span id="t-dinero">165386</span>
                 renderizarTicketsGuardados();
 
                 const ahoraIso = new Date().toLocaleString('es-CO');
-                const formData = new URLSearchParams();
-                formData.append('fechaHora', ahoraIso);
-                formData.append('placa', placaVal.toUpperCase());
-                formData.append('cliente', clienteVal);
-                formData.append('km', kmVal);
-                formData.append('producto', document.getElementById('producto').value);
-                formData.append('ppu', ppuVal);
-                formData.append('volumen', volVal);
-                formData.append('dinero', dinVal);
-                formData.append('autorizacion', autorizacionVal);
-                formData.append('consecutivo', consecutivoVal);
-                formData.append('tipoEvento', 'IMPRESION');
-                formData.append('vecesImpreso', '1');
-
-                fetch(scriptURL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: formData
-                }).catch(error => console.error('Error al sincronizar con Sheet:', error));
+                enviarEventoASheet({
+                    fechaHora: ahoraIso,
+                    placa: placaVal.toUpperCase(),
+                    cliente: clienteVal,
+                    km: kmVal,
+                    producto: document.getElementById('producto').value,
+                    ppu: ppuVal,
+                    volumen: volVal,
+                    dinero: dinVal,
+                    autorizacion: autorizacionVal,
+                    consecutivo: consecutivoVal,
+                    tipoEvento: 'IMPRESION',
+                    vecesImpreso: '1'
+                });
 
                 setTimeout(() => {
                     try {
@@ -646,6 +676,7 @@ Dinero : $<span id="t-dinero">165386</span>
                         document.getElementById('producto').value = 'DIESEL';
                         cambiarProductoYPrecio();
 
+                        procesandoImpresionLock = false;
                         if (btn) {
                             btn.innerText = "🖨️ Imprimir Ticket y Guardar";
                             btn.disabled = false;
@@ -654,6 +685,7 @@ Dinero : $<span id="t-dinero">165386</span>
                 }, 600);
             } catch (err) {
                 console.error('Error en procesarImpresionYGuardar:', err);
+                procesandoImpresionLock = false;
                 if (btn) {
                     btn.innerText = "🖨️ Imprimir Ticket y Guardar";
                     btn.disabled = false;
@@ -809,6 +841,11 @@ Dinero : $<span id="t-dinero">165386</span>
             }
             if (estadoEl) estadoEl.innerText = "Consultando últimos 10 registros de FAC EDS...";
 
+            if (window.location && window.location.protocol === 'file:') {
+                cargarViaJSONP('Modo archivo local');
+                return;
+            }
+
             const urlFetch = `${scriptURL}?action=listarTickets&_=${Date.now()}`;
             fetch(urlFetch, { method: 'GET', cache: 'no-store' })
                 .then(res => {
@@ -823,8 +860,8 @@ Dinero : $<span id="t-dinero">165386</span>
                         cargarViaJSONP(data && data.error ? `Error Apps Script: ${data.error}` : "Sin filas en respuesta");
                     }
                 })
-                .catch(err => {
-                    cargarViaJSONP(err && err.message ? err.message : "Error de red");
+                .catch(() => {
+                    cargarViaJSONP('Consulta directa');
                 });
         }
 
@@ -838,15 +875,15 @@ Dinero : $<span id="t-dinero">165386</span>
                 if (scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
             };
 
-            const activarRespaldoHoja = () => {
-                cargarDesdeCSVHoja(motivoFetch);
+            const activarRespaldoHoja = (motivo) => {
+                cargarDesdeCSVHoja(motivo || motivoFetch);
             };
 
             const timer = setTimeout(() => {
                 if (completado) return;
                 completado = true;
                 limpiar();
-                activarRespaldoHoja();
+                activarRespaldoHoja(motivoFetch);
             }, 3500);
 
             window[callbackName] = function (data) {
@@ -929,6 +966,7 @@ Dinero : $<span id="t-dinero">165386</span>
                         const dinero = (c[7] || '0').trim();
                         const autorizacion = (c[8] || '').trim();
                         const consecutivoCol = (c[9] || '').trim();
+                        const vecesCol = parseInt(c[11] || '1', 10) || 1;
 
                         if (!placa && !cliente && !consecutivoCol) continue;
 
@@ -950,7 +988,7 @@ Dinero : $<span id="t-dinero">165386</span>
                             volumen,
                             dinero,
                             autorizacion,
-                            vecesImpreso: 1
+                            vecesImpreso: vecesCol
                         });
                     }
 
@@ -981,7 +1019,7 @@ Dinero : $<span id="t-dinero">165386</span>
                 listo = true;
                 limpiar();
                 if (estadoEl) {
-                    estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales (${motivoFetch})`;
+                    estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales`;
                 }
             }, 4000);
 
@@ -1015,6 +1053,7 @@ Dinero : $<span id="t-dinero">165386</span>
                         const dinero = val(7) || '0';
                         const autorizacion = val(8) || '';
                         const consecutivoCol = val(9) || '';
+                        const vecesCol = parseInt(val(11) || '1', 10) || 1;
 
                         if (!placa && !cliente && !consecutivoCol) continue;
 
@@ -1036,18 +1075,18 @@ Dinero : $<span id="t-dinero">165386</span>
                             volumen: volumen,
                             dinero: dinero,
                             autorizacion: autorizacion,
-                            vecesImpreso: 1
+                            vecesImpreso: vecesCol
                         });
                     }
 
                     if (convertidos.length > 0) {
                         fusionarTicketsRemotos(convertidos, 'Hoja FAC EDS');
                     } else if (estadoEl) {
-                        estadoEl.innerText = `No se encontraron filas en ${SHEET_NAME} (${motivoFetch}).`;
+                        estadoEl.innerText = `No se encontraron filas en ${SHEET_NAME}.`;
                     }
                 } catch (e) {
                     if (estadoEl) {
-                        estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales (${motivoFetch}).`;
+                        estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales`;
                     }
                 }
             };
@@ -1058,7 +1097,7 @@ Dinero : $<span id="t-dinero">165386</span>
                 clearTimeout(timer);
                 limpiar();
                 if (estadoEl) {
-                    estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales (${motivoFetch}).`;
+                    estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales`;
                 }
             };
 
@@ -1069,27 +1108,31 @@ Dinero : $<span id="t-dinero">165386</span>
 
         function registrarReimpresionEnDrive(ticket) {
             const ahoraReimpresion = new Date().toLocaleString('es-CO');
-            const payloadReimpresion = new URLSearchParams();
-            payloadReimpresion.append('fechaHora', ahoraReimpresion);
-            payloadReimpresion.append('fechaHoraReimpresion', ahoraReimpresion);
-            payloadReimpresion.append('fechaHoraOriginal', `${ticket.fecha} ${ticket.hora}`);
-            payloadReimpresion.append('placa', ticket.placa);
-            payloadReimpresion.append('cliente', ticket.cliente);
-            payloadReimpresion.append('km', ticket.km || '0');
-            payloadReimpresion.append('producto', ticket.producto);
-            payloadReimpresion.append('ppu', ticket.ppu);
-            payloadReimpresion.append('volumen', ticket.volumen);
-            payloadReimpresion.append('dinero', ticket.dinero);
-            payloadReimpresion.append('autorizacion', ticket.autorizacion || '');
-            payloadReimpresion.append('consecutivo', ticket.consecutivo);
-            payloadReimpresion.append('tipoEvento', 'REIMPRESION');
-            payloadReimpresion.append('vecesImpreso', String(ticket.vecesImpreso));
+            const estadoEl = document.getElementById('estadoSincronizacionBase');
+            if (estadoEl) {
+                estadoEl.innerText = `Guardando reimpresión de ${ticket.placa} (#${ticket.consecutivo}) en FAC EDS...`;
+            }
 
-            fetch(scriptURL, {
-                method: 'POST',
-                mode: 'no-cors',
-                body: payloadReimpresion
-            }).catch(error => console.error('Error al registrar reimpresión en Drive:', error));
+            enviarEventoASheet({
+                fechaHora: ahoraReimpresion,
+                fechaHoraReimpresion: ahoraReimpresion,
+                fechaHoraOriginal: `${ticket.fecha} ${ticket.hora}`,
+                placa: ticket.placa,
+                cliente: ticket.cliente,
+                km: ticket.km || '0',
+                producto: ticket.producto,
+                ppu: ticket.ppu,
+                volumen: ticket.volumen,
+                dinero: ticket.dinero,
+                autorizacion: ticket.autorizacion || '',
+                consecutivo: ticket.consecutivo,
+                tipoEvento: 'REIMPRESION',
+                vecesImpreso: String(ticket.vecesImpreso)
+            }, () => {
+                if (estadoEl) {
+                    estadoEl.innerText = `Reimpresión registrada (${ticket.placa} · #${ticket.consecutivo} · ${ahoraReimpresion}).`;
+                }
+            });
         }
 
         function obtenerTicketsFiltradosUltimos10() {
@@ -1200,22 +1243,7 @@ Dinero : $<span id="t-dinero">165386</span>
             }, 250);
         }
 
-        function enlazarEventosDirectos() {
-            const tabFact = document.getElementById('tabFacturacion');
-            const tabReimp = document.getElementById('tabReimpresion');
-            const btnImprimir = document.getElementById('btnImprimir');
-            const btnRefrescarBase = document.getElementById('btnRefrescarBase');
-            const btnReimprimirDirecto = document.getElementById('btnReimprimirDirecto');
-
-            if (tabFact) tabFact.addEventListener('click', (e) => { e.preventDefault(); activarModulo('facturacion'); });
-            if (tabReimp) tabReimp.addEventListener('click', (e) => { e.preventDefault(); activarModulo('reimpresion'); });
-            if (btnImprimir) btnImprimir.addEventListener('click', (e) => { e.preventDefault(); procesarImpresionYGuardar(); });
-            if (btnRefrescarBase) btnRefrescarBase.addEventListener('click', (e) => { e.preventDefault(); cargarTicketsDesdeBaseRemota(true); });
-            if (btnReimprimirDirecto) btnReimprimirDirecto.addEventListener('click', (e) => { e.preventDefault(); reimprimirPorConsecutivoDirecto(); });
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
-            enlazarEventosDirectos();
             renderizarTicketsGuardados();
         });
     </script>
