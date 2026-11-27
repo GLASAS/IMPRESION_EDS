@@ -2,45 +2,50 @@ const SHEET_ID = "1kpCmuE1pzVlyd2xZhr7hyNnGUKaDI-pVZvHgB61pEYM";
 const SHEET_NAME = "FAC EDS";
 const SHEET_GID = "0";
 const SCRIPT_URL_ACTUAL = "https://script.google.com/macros/s/AKfycbwBoF_PJjYZr1Ij_mkQnsvZQr6ak6-rPkE7FsDJbYiTebMupVeNWXIiKpkv2J8DKjiCfg/exec";
-let scriptURL = SCRIPT_URL_ACTUAL;
+var scriptURL = SCRIPT_URL_ACTUAL;
 
 try {
-    localStorage.setItem('google_sheet_url', SCRIPT_URL_ACTUAL);
+    if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('google_sheet_url', SCRIPT_URL_ACTUAL);
+    }
 } catch (e) {}
 
-let ultimaLlaveEnvio = '';
-let ultimoTiempoEnvio = 0;
+var ultimaLlaveEnvio = '';
+var ultimoTiempoEnvio = 0;
 
 function enviarEventoASheet(paramsObj, alTerminar) {
-    const ahoraMs = Date.now();
-    const llaveEnvio = `${paramsObj.tipoEvento || ''}|${paramsObj.consecutivo || ''}|${paramsObj.placa || ''}|${paramsObj.vecesImpreso || ''}`;
-    if (llaveEnvio === ultimaLlaveEnvio && (ahoraMs - ultimoTiempoEnvio) < 2000) {
+    var urlDestino = (typeof scriptURL === 'string' && scriptURL.trim()) ? scriptURL.trim() : SCRIPT_URL_ACTUAL;
+    var ahoraMs = Date.now();
+    var llaveEnvio = (paramsObj.tipoEvento || '') + '|' + (paramsObj.consecutivo || '') + '|' + (paramsObj.placa || '') + '|' + (paramsObj.vecesImpreso || '');
+
+    if (llaveEnvio === ultimaLlaveEnvio && (ahoraMs - ultimoTiempoEnvio) < 1500) {
         if (typeof alTerminar === 'function') alTerminar(true);
         return;
     }
     ultimaLlaveEnvio = llaveEnvio;
     ultimoTiempoEnvio = ahoraMs;
 
-    const formData = new URLSearchParams();
-    Object.keys(paramsObj).forEach(k => {
-        formData.append(k, paramsObj[k] !== undefined && paramsObj[k] !== null ? String(paramsObj[k]) : '');
+    var formData = new URLSearchParams();
+    Object.keys(paramsObj || {}).forEach(function (k) {
+        var val = paramsObj[k];
+        formData.append(k, val !== undefined && val !== null ? String(val) : '');
     });
 
-    fetch(scriptURL, {
+    fetch(urlDestino, {
         method: 'POST',
         mode: 'no-cors',
         body: formData
     })
-        .then(() => {
+        .then(function () {
             if (typeof alTerminar === 'function') alTerminar(true);
         })
-        .catch(error => {
-            console.error('Error al sincronizar con Sheet:', error);
+        .catch(function (error) {
+            console.error('Error al enviar evento a Sheet:', error);
             if (typeof alTerminar === 'function') alTerminar(false);
         });
 }
 
-const RUTAS_LOGO_RESPALDO = [
+var RUTAS_LOGO_RESPALDO = [
     'assets/logo biomax.png',
     './assets/logo biomax.png',
     'assets/logo%20biomax.png',
@@ -50,7 +55,7 @@ const RUTAS_LOGO_RESPALDO = [
 
 function respaldoLogo(imgEl) {
     try {
-        const pasoActual = parseInt(imgEl.getAttribute('data-retry') || '0', 10);
+        var pasoActual = parseInt(imgEl.getAttribute('data-retry') || '0', 10);
         if (pasoActual < RUTAS_LOGO_RESPALDO.length) {
             imgEl.setAttribute('data-retry', String(pasoActual + 1));
             imgEl.src = RUTAS_LOGO_RESPALDO[pasoActual];
@@ -61,11 +66,11 @@ function respaldoLogo(imgEl) {
 }
 
 function actualizarAutorizacionEnTicket(valorAutorizacion) {
-    const limpio = String(valorAutorizacion || '').trim();
-    const elLinea = document.getElementById('t-autorizacion-linea');
+    var limpio = String(valorAutorizacion || '').trim();
+    var elLinea = document.getElementById('t-autorizacion-linea');
     if (!elLinea) return;
     if (limpio !== '' && limpio !== '0' && Number(limpio) !== 0) {
-        elLinea.innerText = `\nAutorizacion : ${limpio}`;
+        elLinea.innerText = '\nAutorizacion : ' + limpio;
     } else {
         elLinea.innerText = '';
     }
