@@ -3,7 +3,7 @@ const LIMITE_ULTIMOS_REGISTROS = 10;
 let memoriaTicketsRespaldo = [];
 let baseRemotaCargada = false;
 let consultaRemotaEnCurso = false;
-let watchdogConsultaTimer = null;
+let watchdogTimer = null;
 
 function normalizarTextoBusqueda(txt) {
     return String(txt || '')
@@ -101,9 +101,9 @@ function normalizarListaTickets(rawLista) {
 }
 
 function limpiarWatchdog() {
-    if (watchdogConsultaTimer) {
-        clearTimeout(watchdogConsultaTimer);
-        watchdogConsultaTimer = null;
+    if (watchdogTimer) {
+        clearTimeout(watchdogTimer);
+        watchdogTimer = null;
     }
 }
 
@@ -126,7 +126,7 @@ function fusionarTicketsRemotos(ticketsRemotos, fuenteTexto = '') {
     const estadoEl = document.getElementById('estadoSincronizacionBase');
     const normalizados = normalizarListaTickets(ticketsRemotos);
     if (!normalizados.length) {
-        finalizarConsultaSinDatos('Sin filas en FAC EDS');
+        finalizarConsultaSinDatos('Sin filas');
         return false;
     }
 
@@ -172,11 +172,11 @@ function cargarTicketsDesdeBaseRemota(forzar = false) {
     consultaRemotaEnCurso = true;
     if (estadoEl) estadoEl.innerText = "Consultando últimos 10 registros de FAC EDS...";
 
-    watchdogConsultaTimer = setTimeout(() => {
+    watchdogTimer = setTimeout(() => {
         if (consultaRemotaEnCurso) {
             finalizarConsultaSinDatos('Tiempo agotado');
         }
-    }, 6500);
+    }, 4500);
 
     cargarViaJSONP();
 }
@@ -196,8 +196,8 @@ function cargarViaJSONP() {
         if (completado) return;
         completado = true;
         limpiar();
-        finalizarConsultaSinDatos('Sin respuesta de Apps Script');
-    }, 5500);
+        cargarDesdeGoogleSheetGViz('Sin respuesta Apps Script');
+    }, 3500);
 
     window[callbackName] = function (data) {
         if (completado) return;
@@ -208,10 +208,8 @@ function cargarViaJSONP() {
         const lista = Array.isArray(data) ? data : (data && Array.isArray(data.tickets) ? data.tickets : []);
         if (lista.length > 0) {
             fusionarTicketsRemotos(lista, 'Apps Script');
-        } else if (data && data.ok === false) {
-            finalizarConsultaSinDatos(data.error || 'Error en Apps Script');
         } else {
-            finalizarConsultaSinDatos('Sin registros');
+            cargarDesdeGoogleSheetGViz(data && data.error ? data.error : 'Sin datos Apps Script');
         }
     };
 
@@ -220,10 +218,106 @@ function cargarViaJSONP() {
         completado = true;
         clearTimeout(timer);
         limpiar();
-        finalizarConsultaSinDatos('Revisar acceso público de Apps Script');
+        cargarDesdeGoogleSheetGViz('Error script Apps Script');
     };
 
     scriptTag.src = `${urlActual}?action=listarTickets&limit=100&callback=${callbackName}&_=${Date.now()}`;
+    document.body.appendChild(scriptTag);
+}
+
+function cargarDesdeGoogleSheetGViz(motivoFetch) {
+    const gvizCallback = 'gvizCb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+    const scriptTag = document.createElement('script');
+    let listo = false;
+
+    const limpiar = () => {
+        try { delete window[gvizCallback]; } catch (e) {}
+        if (scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
+    };
+
+    const timer = setTimeout(() => {
+        if (listo) return;
+        listo = true;
+        limpiar();
+        finalizarConsultaSinDatos(motivoFetch || 'Revisar permisos/implementación');
+    }, 3500);
+
+    window[gvizCallback] = function (resp) {
+        if (listo) return;
+        listo = true;
+        clearTimeout(timer);
+        limpiar();
+
+        try {
+            const table = resp && resp.table;
+            const rows = (table && Array.isArray(table.rows)) ? table.rows : [];
+            const invertidas = [...rows].reverse();
+            const convertidos = [];
+
+            for (let i = 0; i < invertidas.length && convertidos.length < 200; i++) {
+                const c = invertidas[i].c || [];
+                const val = (idx) => {
+                    const cell = c[idx];
+                    if (!cell) return '';
+                    return cell.f !== undefined && cell.f !== null ? String(cell.f).trim() : String(cell.v ?? '').trim();
+                };
+
+                const fechaCompleta = val(0);
+                const placa = val(1).toUpperCase();
+                const cliente = val(2);
+                const km = val(3) || '0';
+                const producto = val(4) || 'DIESEL';
+                const ppu = val(5) || '';
+                const volumen = val(6) || '0';
+                const dinero = val(7) || '0';
+                const autorizacion = val(8) || '';
+                const consecutivoCol = val(9) || '';
+                const vecesCol = parseInt(val(11) || '1', 10) || 1;
+
+                if (!placa && !cliente && !consecutivoCol && !dinero) continue;
+
+                const idxComa = fechaCompleta.indexOf(',');
+                const fechaTxt = idxComa !== -1 ? fechaCompleta.slice(0, idxComa).trim() : fechaCompleta.trim();
+                const horaTxt = idxComa !== -1 ? fechaCompleta.slice(idxComa + 1).trim() : '';
+                const filaNum = rows.length - i + 1;
+
+                convertidos.push({
+                    idRegistro: `F${filaNum}-${placa}-${consecutivoCol || dinero}`,
+                    consecutivo: consecutivoCol || String(filaNum),
+                    fecha: fechaTxt,
+                    hora: horaTxt,
+                    placa: placa,
+                    cliente: cliente,
+                    km: km,
+                    producto: producto,
+                    ppu: ppu,
+                    volumen: volumen,
+                    dinero: dinero,
+                    autorizacion: autorizacion,
+                    vecesImpreso: vecesCol
+                });
+            }
+
+            if (convertidos.length > 0) {
+                fusionarTicketsRemotos(convertidos, 'Hoja FAC EDS');
+            } else {
+                finalizarConsultaSinDatos(motivoFetch || 'Sin filas en hoja');
+            }
+        } catch (e) {
+            finalizarConsultaSinDatos(motivoFetch || 'Error leyendo hoja');
+        }
+    };
+
+    scriptTag.onerror = function () {
+        if (listo) return;
+        listo = true;
+        clearTimeout(timer);
+        limpiar();
+        finalizarConsultaSinDatos(motivoFetch || 'Bloqueo lectura hoja');
+    };
+
+    const sheetParam = encodeURIComponent(SHEET_NAME);
+    scriptTag.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${sheetParam}&tqx=responseHandler:${gvizCallback}&_=${Date.now()}`;
     document.body.appendChild(scriptTag);
 }
 
