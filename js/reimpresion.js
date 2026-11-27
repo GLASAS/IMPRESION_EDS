@@ -102,8 +102,11 @@ function normalizarListaTickets(rawLista) {
 function finalizarConsultaSinDatos(detalle = '') {
     consultaRemotaEnCurso = false;
     const estadoEl = document.getElementById('estadoSincronizacionBase');
+    const locales = obtenerTicketsGuardados();
     if (estadoEl) {
-        estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales${detalle ? ' (' + detalle + ')' : ''}`;
+        estadoEl.innerText = locales.length > 0
+            ? `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales${detalle ? ' (' + detalle + ')' : ''}`
+            : `Sin registros disponibles${detalle ? ' (' + detalle + ')' : ''}`;
     }
     renderizarTicketsGuardados();
 }
@@ -112,7 +115,10 @@ function fusionarTicketsRemotos(ticketsRemotos, fuenteTexto = '') {
     consultaRemotaEnCurso = false;
     const estadoEl = document.getElementById('estadoSincronizacionBase');
     const normalizados = normalizarListaTickets(ticketsRemotos);
-    if (!normalizados.length) return false;
+    if (!normalizados.length) {
+        finalizarConsultaSinDatos('Hoja vacía');
+        return false;
+    }
 
     const locales = obtenerTicketsGuardados();
     const combinados = [...normalizados];
@@ -154,80 +160,7 @@ function cargarTicketsDesdeBaseRemota(forzar = false) {
     consultaRemotaEnCurso = true;
     if (estadoEl) estadoEl.innerText = "Consultando últimos 10 registros de FAC EDS...";
 
-    const urlActual = (typeof scriptURL !== 'undefined' && scriptURL) ? scriptURL : SCRIPT_URL_ACTUAL;
-    const urlFetch = `${urlActual}?action=listarTickets&_=${Date.now()}`;
-    const fetchTimer = setTimeout(() => {
-        if (!consultaRemotaEnCurso) return;
-        cargarViaJSONP('Tiempo de espera');
-    }, 3000);
-
-    fetch(urlFetch, { method: 'GET', cache: 'no-store' })
-        .then(res => {
-            clearTimeout(fetchTimer);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return res.json();
-        })
-        .then(data => {
-            if (!consultaRemotaEnCurso) return;
-            const lista = Array.isArray(data) ? data : (data && Array.isArray(data.tickets) ? data.tickets : []);
-            if (lista.length > 0) {
-                fusionarTicketsRemotos(lista, 'Apps Script');
-            } else {
-                cargarViaJSONP(data && data.error ? `Error Apps Script: ${data.error}` : "Sin filas en JSON");
-            }
-        })
-        .catch(err => {
-            clearTimeout(fetchTimer);
-            if (!consultaRemotaEnCurso) return;
-            cargarViaJSONP(err && err.message ? err.message : 'Apps Script');
-        });
-}
-
-function cargarViaJSONP(motivoFetch) {
-    const callbackName = 'edsCallback_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-    const scriptTag = document.createElement('script');
-    let completado = false;
-
-    const limpiar = () => {
-        try { delete window[callbackName]; } catch (e) {}
-        if (scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
-    };
-
-    const activarRespaldoHoja = (motivo) => {
-        cargarDesdeGoogleSheetGViz(motivo || motivoFetch);
-    };
-
-    const timer = setTimeout(() => {
-        if (completado) return;
-        completado = true;
-        limpiar();
-        activarRespaldoHoja(motivoFetch);
-    }, 3000);
-
-    window[callbackName] = function (data) {
-        if (completado) return;
-        completado = true;
-        clearTimeout(timer);
-        limpiar();
-        const lista = Array.isArray(data) ? data : (data && Array.isArray(data.tickets) ? data.tickets : []);
-        if (lista.length > 0) {
-            fusionarTicketsRemotos(lista, 'JSONP');
-        } else {
-            activarRespaldoHoja(data && data.error ? `Error JSONP: ${data.error}` : motivoFetch);
-        }
-    };
-
-    scriptTag.onerror = function () {
-        if (completado) return;
-        completado = true;
-        clearTimeout(timer);
-        limpiar();
-        activarRespaldoHoja(motivoFetch);
-    };
-
-    const urlActual = (typeof scriptURL !== 'undefined' && scriptURL) ? scriptURL : SCRIPT_URL_ACTUAL;
-    scriptTag.src = `${urlActual}?action=listarTickets&callback=${callbackName}&_=${Date.now()}`;
-    document.body.appendChild(scriptTag);
+    cargarDesdeGoogleSheetGViz('Consulta directa');
 }
 
 function parsearLineaCSV(linea) {
@@ -257,8 +190,8 @@ function parsearLineaCSV(linea) {
 function cargarDesdeCSVHoja(motivoFetch) {
     const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}&_=${Date.now()}`;
     const csvTimer = setTimeout(() => {
-        finalizarConsultaSinDatos(motivoFetch);
-    }, 3000);
+        finalizarConsultaSinDatos(motivoFetch || 'Timeout CSV');
+    }, 4000);
 
     fetch(csvUrl, { method: 'GET', cache: 'no-store' })
         .then(res => {
@@ -269,7 +202,7 @@ function cargarDesdeCSVHoja(motivoFetch) {
         .then(csvText => {
             const lineas = csvText.split(/\r?\n/).filter(l => l.trim() !== '');
             if (lineas.length <= 1) {
-                finalizarConsultaSinDatos(motivoFetch);
+                finalizarConsultaSinDatos(motivoFetch || 'Sin filas');
                 return;
             }
 
@@ -318,12 +251,12 @@ function cargarDesdeCSVHoja(motivoFetch) {
             if (convertidos.length > 0) {
                 fusionarTicketsRemotos(convertidos, 'FAC EDS');
             } else {
-                finalizarConsultaSinDatos(motivoFetch);
+                finalizarConsultaSinDatos(motivoFetch || 'Sin datos válidos');
             }
         })
         .catch(() => {
             clearTimeout(csvTimer);
-            finalizarConsultaSinDatos(motivoFetch);
+            finalizarConsultaSinDatos(motivoFetch || 'Error de red');
         });
 }
 
@@ -342,7 +275,7 @@ function cargarDesdeGoogleSheetGViz(motivoFetch) {
         listo = true;
         limpiar();
         cargarDesdeCSVHoja(motivoFetch);
-    }, 3000);
+    }, 4000);
 
     window[gvizCallback] = function (resp) {
         if (listo) return;
