@@ -1,0 +1,34 @@
+.ticket-print-only {
+    display: none;
+}
+
+/* CONFIGURACIÓN TICKET 7.5CM X 18CM CON LETRA ESTÁNDAR DE FACTURA */
+@media print {
+    @page {
+        size: 7.5cm 18cm;
+        margin: 0mm;
+    }
+    body * {
+        visibility: hidden;
+    }
+    .ticket-print-only, .ticket-print-only * {
+        visibility: visible;
+    }
+    .ticket-print-only {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 7.5cm !important;
+        height: 18cm !important;
+        font-family: 'Courier New', 'Lucida Console', monospace !important;
+        font-weight: 600;
+        font-size: 11px;
+        line-height: 1.25;
+        color: #000000;
+        margin: 0;
+        padding: 1mm 2mm;
+        white-space: pre-wrap;
+        overflow: hidden;
+    }
+}
