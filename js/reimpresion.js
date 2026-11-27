@@ -481,6 +481,7 @@ function obtenerTicketsFiltradosUltimos10() {
         .slice(0, LIMITE_ULTIMOS_REGISTROS);
 }
 
+
 function renderizarTicketsGuardados() {
     const contenedor = document.getElementById('listaTicketsGuardados');
     if (!contenedor) return;
