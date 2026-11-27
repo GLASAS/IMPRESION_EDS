@@ -116,7 +116,7 @@ function fusionarTicketsRemotos(ticketsRemotos, fuenteTexto = '') {
     const estadoEl = document.getElementById('estadoSincronizacionBase');
     const normalizados = normalizarListaTickets(ticketsRemotos);
     if (!normalizados.length) {
-        finalizarConsultaSinDatos('Sin filas');
+        finalizarConsultaSinDatos('Sin filas en FAC EDS');
         return false;
     }
 
@@ -160,10 +160,10 @@ function cargarTicketsDesdeBaseRemota(forzar = false) {
     consultaRemotaEnCurso = true;
     if (estadoEl) estadoEl.innerText = "Consultando últimos 10 registros de FAC EDS...";
 
-    cargarViaJSONP('Apps Script JSONP');
+    cargarViaJSONP();
 }
 
-function cargarViaJSONP(motivoFetch) {
+function cargarViaJSONP() {
     const urlActual = (typeof scriptURL !== 'undefined' && scriptURL) ? scriptURL : SCRIPT_URL_ACTUAL;
     const callbackName = 'edsCallback_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
     const scriptTag = document.createElement('script');
@@ -174,16 +174,12 @@ function cargarViaJSONP(motivoFetch) {
         if (scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
     };
 
-    const pasarARespaldoSheet = (detalle) => {
-        cargarDesdeGoogleSheetGViz(detalle || motivoFetch);
-    };
-
     const timer = setTimeout(() => {
         if (completado) return;
         completado = true;
         limpiar();
-        pasarARespaldoSheet('Timeout Apps Script');
-    }, 5000);
+        finalizarConsultaSinDatos('Sin respuesta de Apps Script');
+    }, 6000);
 
     window[callbackName] = function (data) {
         if (completado) return;
@@ -195,9 +191,9 @@ function cargarViaJSONP(motivoFetch) {
         if (lista.length > 0) {
             fusionarTicketsRemotos(lista, 'Apps Script');
         } else if (data && data.ok === false) {
-            pasarARespaldoSheet(data.error || 'Error Apps Script');
+            finalizarConsultaSinDatos(data.error || 'Error en Apps Script');
         } else {
-            pasarARespaldoSheet('Sin registros en Apps Script');
+            finalizarConsultaSinDatos('Sin registros');
         }
     };
 
@@ -206,203 +202,10 @@ function cargarViaJSONP(motivoFetch) {
         completado = true;
         clearTimeout(timer);
         limpiar();
-        pasarARespaldoSheet('Error script Apps Script');
+        finalizarConsultaSinDatos('Revisar implementación de Apps Script');
     };
 
     scriptTag.src = `${urlActual}?action=listarTickets&limit=100&callback=${callbackName}&_=${Date.now()}`;
-    document.body.appendChild(scriptTag);
-}
-
-function parsearLineaCSV(linea) {
-    const resultado = [];
-    let actual = '';
-    let entreComillas = false;
-    for (let i = 0; i < linea.length; i++) {
-        const ch = linea[i];
-        if (ch === '"') {
-            if (entreComillas && linea[i + 1] === '"') {
-                actual += '"';
-                i++;
-            } else {
-                entreComillas = !entreComillas;
-            }
-        } else if (ch === ',' && !entreComillas) {
-            resultado.push(actual.trim());
-            actual = '';
-        } else {
-            actual += ch;
-        }
-    }
-    resultado.push(actual.trim());
-    return resultado;
-}
-
-function cargarDesdeCSVHoja(motivoFetch) {
-    const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}&_=${Date.now()}`;
-    const csvTimer = setTimeout(() => {
-        finalizarConsultaSinDatos(motivoFetch || 'Timeout CSV');
-    }, 4000);
-
-    fetch(csvUrl, { method: 'GET', cache: 'no-store' })
-        .then(res => {
-            clearTimeout(csvTimer);
-            if (!res.ok) throw new Error(`CSV HTTP ${res.status}`);
-            return res.text();
-        })
-        .then(csvText => {
-            const lineas = csvText.split(/\r?\n/).filter(l => l.trim() !== '');
-            if (lineas.length <= 1) {
-                finalizarConsultaSinDatos(motivoFetch || 'Sin filas');
-                return;
-            }
-
-            const filasDatos = lineas.slice(1).map(parsearLineaCSV);
-            const invertidas = [...filasDatos].reverse();
-            const convertidos = [];
-
-            for (let i = 0; i < invertidas.length && convertidos.length < 200; i++) {
-                const c = invertidas[i];
-                const fechaCompleta = c[0] || '';
-                const placa = (c[1] || '').toUpperCase().trim();
-                const cliente = (c[2] || '').trim();
-                const km = (c[3] || '0').trim();
-                const producto = (c[4] || 'DIESEL').trim();
-                const ppu = (c[5] || '').trim();
-                const volumen = (c[6] || '0').trim();
-                const dinero = (c[7] || '0').trim();
-                const autorizacion = (c[8] || '').trim();
-                const consecutivoCol = (c[9] || '').trim();
-                const vecesCol = parseInt(c[11] || '1', 10) || 1;
-
-                if (!placa && !cliente && !consecutivoCol) continue;
-
-                const idxComa = fechaCompleta.indexOf(',');
-                const fechaTxt = idxComa !== -1 ? fechaCompleta.slice(0, idxComa).trim() : fechaCompleta.trim();
-                const horaTxt = idxComa !== -1 ? fechaCompleta.slice(idxComa + 1).trim() : '';
-                const filaNum = filasDatos.length - i + 1;
-
-                convertidos.push({
-                    idRegistro: `F${filaNum}-${placa}-${consecutivoCol || dinero}`,
-                    consecutivo: consecutivoCol || String(filaNum),
-                    fecha: fechaTxt,
-                    hora: horaTxt,
-                    placa,
-                    cliente,
-                    km,
-                    producto,
-                    ppu,
-                    volumen,
-                    dinero,
-                    autorizacion,
-                    vecesImpreso: vecesCol
-                });
-            }
-
-            if (convertidos.length > 0) {
-                fusionarTicketsRemotos(convertidos, 'FAC EDS');
-            } else {
-                finalizarConsultaSinDatos(motivoFetch || 'Sin datos válidos');
-            }
-        })
-        .catch(() => {
-            clearTimeout(csvTimer);
-            finalizarConsultaSinDatos(motivoFetch || 'Verificar publicación/permisos');
-        });
-}
-
-function cargarDesdeGoogleSheetGViz(motivoFetch) {
-    const gvizCallback = 'gvizCb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
-    const scriptTag = document.createElement('script');
-    let listo = false;
-
-    const limpiar = () => {
-        try { delete window[gvizCallback]; } catch (e) {}
-        if (scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
-    };
-
-    const timer = setTimeout(() => {
-        if (listo) return;
-        listo = true;
-        limpiar();
-        cargarDesdeCSVHoja(motivoFetch);
-    }, 4000);
-
-    window[gvizCallback] = function (resp) {
-        if (listo) return;
-        listo = true;
-        clearTimeout(timer);
-        limpiar();
-
-        try {
-            const table = resp && resp.table;
-            const rows = (table && Array.isArray(table.rows)) ? table.rows : [];
-            const invertidas = [...rows].reverse();
-            const convertidos = [];
-
-            for (let i = 0; i < invertidas.length && convertidos.length < 200; i++) {
-                const c = invertidas[i].c || [];
-                const val = (idx) => {
-                    const cell = c[idx];
-                    if (!cell) return '';
-                    return cell.f !== undefined && cell.f !== null ? String(cell.f).trim() : String(cell.v ?? '').trim();
-                };
-
-                const fechaCompleta = val(0);
-                const placa = val(1).toUpperCase();
-                const cliente = val(2);
-                const km = val(3) || '0';
-                const producto = val(4) || 'DIESEL';
-                const ppu = val(5) || '';
-                const volumen = val(6) || '0';
-                const dinero = val(7) || '0';
-                const autorizacion = val(8) || '';
-                const consecutivoCol = val(9) || '';
-                const vecesCol = parseInt(val(11) || '1', 10) || 1;
-
-                if (!placa && !cliente && !consecutivoCol) continue;
-
-                const idxComa = fechaCompleta.indexOf(',');
-                const fechaTxt = idxComa !== -1 ? fechaCompleta.slice(0, idxComa).trim() : fechaCompleta.trim();
-                const horaTxt = idxComa !== -1 ? fechaCompleta.slice(idxComa + 1).trim() : '';
-                const filaNum = rows.length - i + 1;
-
-                convertidos.push({
-                    idRegistro: `F${filaNum}-${placa}-${consecutivoCol || dinero}`,
-                    consecutivo: consecutivoCol || String(filaNum),
-                    fecha: fechaTxt,
-                    hora: horaTxt,
-                    placa: placa,
-                    cliente: cliente,
-                    km: km,
-                    producto: producto,
-                    ppu: ppu,
-                    volumen: volumen,
-                    dinero: dinero,
-                    autorizacion: autorizacion,
-                    vecesImpreso: vecesCol
-                });
-            }
-
-            if (convertidos.length > 0) {
-                fusionarTicketsRemotos(convertidos, 'Hoja FAC EDS');
-            } else {
-                cargarDesdeCSVHoja(motivoFetch);
-            }
-        } catch (e) {
-            cargarDesdeCSVHoja(motivoFetch);
-        }
-    };
-
-    scriptTag.onerror = function () {
-        if (listo) return;
-        listo = true;
-        clearTimeout(timer);
-        limpiar();
-        cargarDesdeCSVHoja(motivoFetch);
-    };
-
-    const sheetParam = encodeURIComponent(SHEET_NAME);
-    scriptTag.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${sheetParam}&tqx=responseHandler:${gvizCallback}&_=${Date.now()}`;
     document.body.appendChild(scriptTag);
 }
 
