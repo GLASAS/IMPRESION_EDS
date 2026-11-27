@@ -96,6 +96,7 @@
             box-shadow: 0 2px 4px rgb(0 0 0 / 0.05);
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
+            user-select: none;
         }
 
         .module-tab.active {
@@ -364,7 +365,7 @@
         <img class="logo-biomax" src="logo biomax.png" alt="Logo Biomax" style="max-width: 140px; height: auto;" onerror="respaldoLogo(this)">
         <h1>EDS Orquídeas <br><span style="font-size: 1rem; font-weight: normal; color: #475569;">Facturación POS</span></h1>
         <div class="header-actions">
-            <span class="version-badge">V25.1135</span>
+            <span class="version-badge">V25.1136</span>
         </div>
     </header>
 
@@ -885,7 +886,7 @@ Dinero : $<span id="t-dinero">165386</span>
             const fetchTimer = setTimeout(() => {
                 if (!consultaRemotaEnCurso) return;
                 cargarViaJSONP('Tiempo de espera');
-            }, 2500);
+            }, 3000);
 
             fetch(urlFetch, { method: 'GET', cache: 'no-store' })
                 .then(res => {
@@ -928,7 +929,7 @@ Dinero : $<span id="t-dinero">165386</span>
                 completado = true;
                 limpiar();
                 activarRespaldoHoja(motivoFetch);
-            }, 2500);
+            }, 3000);
 
             window[callbackName] = function (data) {
                 if (completado) return;
@@ -970,3 +971,408 @@ Dinero : $<span id="t-dinero">165386</span>
                     }
                 } else if (ch === ',' && !entreComillas) {
                     resultado.push(actual.trim());
+                    actual = '';
+                } else {
+                    actual += ch;
+                }
+            }
+            resultado.push(actual.trim());
+            return resultado;
+        }
+
+        function cargarDesdeCSVHoja(motivoFetch) {
+            const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}&_=${Date.now()}`;
+            const csvTimer = setTimeout(() => {
+                finalizarConsultaSinDatos(motivoFetch);
+            }, 3000);
+
+            fetch(csvUrl, { method: 'GET', cache: 'no-store' })
+                .then(res => {
+                    clearTimeout(csvTimer);
+                    if (!res.ok) throw new Error(`CSV HTTP ${res.status}`);
+                    return res.text();
+                })
+                .then(csvText => {
+                    const lineas = csvText.split(/\r?\n/).filter(l => l.trim() !== '');
+                    if (lineas.length <= 1) {
+                        finalizarConsultaSinDatos(motivoFetch);
+                        return;
+                    }
+
+                    const filasDatos = lineas.slice(1).map(parsearLineaCSV);
+                    const invertidas = [...filasDatos].reverse();
+                    const convertidos = [];
+
+                    for (let i = 0; i < invertidas.length && convertidos.length < 100; i++) {
+                        const c = invertidas[i];
+                        const fechaCompleta = c[0] || '';
+                        const placa = (c[1] || '').toUpperCase().trim();
+                        const cliente = (c[2] || '').trim();
+                        const km = (c[3] || '0').trim();
+                        const producto = (c[4] || 'DIESEL').trim();
+                        const ppu = (c[5] || '').trim();
+                        const volumen = (c[6] || '0').trim();
+                        const dinero = (c[7] || '0').trim();
+                        const autorizacion = (c[8] || '').trim();
+                        const consecutivoCol = (c[9] || '').trim();
+                        const vecesCol = parseInt(c[11] || '1', 10) || 1;
+
+                        if (!placa && !cliente && !consecutivoCol) continue;
+
+                        const idxComa = fechaCompleta.indexOf(',');
+                        const fechaTxt = idxComa !== -1 ? fechaCompleta.slice(0, idxComa).trim() : fechaCompleta.trim();
+                        const horaTxt = idxComa !== -1 ? fechaCompleta.slice(idxComa + 1).trim() : '';
+                        const filaNum = filasDatos.length - i + 1;
+
+                        convertidos.push({
+                            idRegistro: `F${filaNum}-${placa}-${consecutivoCol || dinero}`,
+                            consecutivo: consecutivoCol || String(filaNum),
+                            fecha: fechaTxt,
+                            hora: horaTxt,
+                            placa,
+                            cliente,
+                            km,
+                            producto,
+                            ppu,
+                            volumen,
+                            dinero,
+                            autorizacion,
+                            vecesImpreso: vecesCol
+                        });
+                    }
+
+                    if (convertidos.length > 0) {
+                        fusionarTicketsRemotos(convertidos, 'FAC EDS');
+                    } else {
+                        finalizarConsultaSinDatos(motivoFetch);
+                    }
+                })
+                .catch(() => {
+                    clearTimeout(csvTimer);
+                    finalizarConsultaSinDatos(motivoFetch);
+                });
+        }
+
+        function cargarDesdeGoogleSheetGViz(motivoFetch) {
+            const gvizCallback = 'gvizCb_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+            const scriptTag = document.createElement('script');
+            let listo = false;
+
+            const limpiar = () => {
+                try { delete window[gvizCallback]; } catch (e) {}
+                if (scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
+            };
+
+            const timer = setTimeout(() => {
+                if (listo) return;
+                listo = true;
+                limpiar();
+                cargarDesdeCSVHoja(motivoFetch);
+            }, 3000);
+
+            window[gvizCallback] = function (resp) {
+                if (listo) return;
+                listo = true;
+                clearTimeout(timer);
+                limpiar();
+
+                try {
+                    const table = resp && resp.table;
+                    const rows = (table && Array.isArray(table.rows)) ? table.rows : [];
+                    const invertidas = [...rows].reverse();
+                    const convertidos = [];
+
+                    for (let i = 0; i < invertidas.length && convertidos.length < 100; i++) {
+                        const c = invertidas[i].c || [];
+                        const val = (idx) => {
+                            const cell = c[idx];
+                            if (!cell) return '';
+                            return cell.f !== undefined && cell.f !== null ? String(cell.f).trim() : String(cell.v ?? '').trim();
+                        };
+
+                        const fechaCompleta = val(0);
+                        const placa = val(1).toUpperCase();
+                        const cliente = val(2);
+                        const km = val(3) || '0';
+                        const producto = val(4) || 'DIESEL';
+                        const ppu = val(5) || '';
+                        const volumen = val(6) || '0';
+                        const dinero = val(7) || '0';
+                        const autorizacion = val(8) || '';
+                        const consecutivoCol = val(9) || '';
+                        const vecesCol = parseInt(val(11) || '1', 10) || 1;
+
+                        if (!placa && !cliente && !consecutivoCol) continue;
+
+                        const idxComa = fechaCompleta.indexOf(',');
+                        const fechaTxt = idxComa !== -1 ? fechaCompleta.slice(0, idxComa).trim() : fechaCompleta.trim();
+                        const horaTxt = idxComa !== -1 ? fechaCompleta.slice(idxComa + 1).trim() : '';
+                        const filaNum = rows.length - i + 1;
+
+                        convertidos.push({
+                            idRegistro: `F${filaNum}-${placa}-${consecutivoCol || dinero}`,
+                            consecutivo: consecutivoCol || String(filaNum),
+                            fecha: fechaTxt,
+                            hora: horaTxt,
+                            placa: placa,
+                            cliente: cliente,
+                            km: km,
+                            producto: producto,
+                            ppu: ppu,
+                            volumen: volumen,
+                            dinero: dinero,
+                            autorizacion: autorizacion,
+                            vecesImpreso: vecesCol
+                        });
+                    }
+
+                    if (convertidos.length > 0) {
+                        fusionarTicketsRemotos(convertidos, 'Hoja FAC EDS');
+                    } else {
+                        cargarDesdeCSVHoja(motivoFetch);
+                    }
+                } catch (e) {
+                    cargarDesdeCSVHoja(motivoFetch);
+                }
+            };
+
+            scriptTag.onerror = function () {
+                if (listo) return;
+                listo = true;
+                clearTimeout(timer);
+                limpiar();
+                cargarDesdeCSVHoja(motivoFetch);
+            };
+
+            const sheetParam = encodeURIComponent(SHEET_NAME);
+            scriptTag.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${sheetParam}&tqx=responseHandler:${gvizCallback}&_=${Date.now()}`;
+            document.body.appendChild(scriptTag);
+        }
+
+        function registrarReimpresionEnDrive(ticket) {
+            const ahoraReimpresion = new Date().toLocaleString('es-CO');
+            const estadoEl = document.getElementById('estadoSincronizacionBase');
+            if (estadoEl) {
+                estadoEl.innerText = `Guardando reimpresión de ${ticket.placa} (#${ticket.consecutivo}) en FAC EDS...`;
+            }
+
+            enviarEventoASheet({
+                fechaHora: ahoraReimpresion,
+                fechaHoraReimpresion: ahoraReimpresion,
+                fechaHoraOriginal: `${ticket.fecha} ${ticket.hora}`,
+                placa: ticket.placa,
+                cliente: ticket.cliente,
+                km: ticket.km || '0',
+                producto: ticket.producto,
+                ppu: ticket.ppu,
+                volumen: ticket.volumen,
+                dinero: ticket.dinero,
+                autorizacion: ticket.autorizacion || '',
+                consecutivo: ticket.consecutivo,
+                tipoEvento: 'REIMPRESION',
+                vecesImpreso: String(ticket.vecesImpreso)
+            }, () => {
+                if (estadoEl) {
+                    estadoEl.innerText = `Reimpresión registrada (${ticket.placa} · #${ticket.consecutivo} · ${ahoraReimpresion}).`;
+                }
+            });
+        }
+
+        function obtenerTicketsFiltradosUltimos10() {
+            const rawFiltro = document.getElementById('filtroTicket')?.value || '';
+            const filtro = normalizarTextoBusqueda(rawFiltro);
+            const filtroCompacto = normalizarCompacto(rawFiltro);
+            const todos = obtenerTicketsGuardados();
+
+            if (!filtroCompacto) {
+                return todos.slice(0, LIMITE_ULTIMOS_REGISTROS);
+            }
+
+            return todos
+                .filter(t => {
+                    const placaNorm = normalizarTextoBusqueda(t.placa);
+                    const placaCompacta = normalizarCompacto(t.placa);
+                    const consecutivoNorm = normalizarTextoBusqueda(t.consecutivo);
+                    const consecutivoCompacto = normalizarCompacto(t.consecutivo);
+                    const clienteNorm = normalizarTextoBusqueda(t.cliente);
+                    const clienteCompacto = normalizarCompacto(t.cliente);
+                    const authCompacta = normalizarCompacto(t.autorizacion);
+
+                    return placaCompacta.includes(filtroCompacto) ||
+                           placaNorm.includes(filtro) ||
+                           consecutivoCompacto.includes(filtroCompacto) ||
+                           consecutivoNorm.includes(filtro) ||
+                           clienteCompacto.includes(filtroCompacto) ||
+                           clienteNorm.includes(filtro) ||
+                           authCompacta.includes(filtroCompacta);
+                })
+                .slice(0, LIMITE_ULTIMOS_REGISTROS);
+        }
+
+        function renderizarTicketsGuardados() {
+            const contenedor = document.getElementById('listaTicketsGuardados');
+            if (!contenedor) return;
+
+            const tickets = obtenerTicketsFiltradosUltimos10();
+
+            if (!tickets.length) {
+                contenedor.innerHTML = '<div class="empty-msg">No hay tickets que coincidan con la búsqueda.</div>';
+                return;
+            }
+
+            contenedor.innerHTML = tickets.map((t, idx) => {
+                const clave = obtenerClaveTicket(t);
+                const encodedClave = encodeURIComponent(clave);
+                return `
+                    <div class="ticket-item" data-ticket-index="${idx}">
+                        <div class="ticket-meta">
+                            <strong>Placa: ${t.placa || 'SIN PLACA'}</strong> · #${t.consecutivo} · $${t.dinero}<br>
+                            ${t.cliente} (${t.producto} - ${String(t.volumen).replace('.', ',')} G.)<br>
+                            <small>${t.fecha} ${t.hora}</small><br>
+                            <span class="print-badge">Impresiones: ${t.vecesImpreso || 1}</span>
+                        </div>
+                        <button type="button" class="btn-reprint" data-clave="${encodedClave}" onclick="ejecutarReimpresion(decodeURIComponent(this.getAttribute('data-clave')))">
+                            🖨️ Reimprimir
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function reimprimirPorConsecutivoDirecto() {
+            const rawValor = document.getElementById('filtroTicket')?.value || '';
+            const valor = normalizarTextoBusqueda(rawValor);
+            const valorCompacto = normalizarCompacto(rawValor);
+            if (!valorCompacto) {
+                alert("Ingrese la placa o número de consecutivo para reimprimir.");
+                return;
+            }
+            const candidatos = obtenerTicketsFiltradosUltimos10();
+            const encontrado =
+                candidatos.find(t => normalizarCompacto(t.placa) === valorCompacto) ||
+                candidatos.find(t => normalizarCompacto(t.placa).includes(valorCompacto)) ||
+                candidatos.find(t => normalizarCompacto(t.consecutivo) === valorCompacto) ||
+                candidatos.find(t => normalizarCompacto(t.consecutivo).includes(valorCompacto)) ||
+                candidatos.find(t => normalizarTextoBusqueda(t.placa).includes(valor));
+
+            if (!encontrado) {
+                alert("No se encontró un ticket reciente con esa placa o consecutivo.");
+                return;
+            }
+            ejecutarReimpresion(obtenerClaveTicket(encontrado));
+        }
+
+        function ejecutarReimpresion(claveBuscada) {
+            const claveNorm = String(claveBuscada || '').trim().toUpperCase();
+            const ticket = obtenerTicketsGuardados().find(t => obtenerClaveTicket(t).toUpperCase() === claveNorm);
+            if (!ticket) {
+                alert("Ticket no encontrado.");
+                return;
+            }
+
+            const totalImpresiones = (parseInt(ticket.vecesImpreso, 10) || 1) + 1;
+            const ticketActualizado = guardarTicketLocal({
+                ...ticket,
+                vecesImpreso: totalImpresiones
+            });
+
+            registrarReimpresionEnDrive(ticketActualizado);
+            renderizarTicketsGuardados();
+
+            document.getElementById('t-num').innerText = ticketActualizado.consecutivo;
+            document.getElementById('t-fecha').innerText = ticketActualizado.fecha;
+            document.getElementById('t-hora').innerText = ticketActualizado.hora;
+            document.getElementById('t-placa').innerText = ticketActualizado.placa;
+            document.getElementById('t-cliente').innerText = ticketActualizado.cliente;
+            document.getElementById('t-km').innerText = ticketActualizado.km || '0';
+            actualizarAutorizacionEnTicket(ticketActualizado.autorizacion);
+            document.getElementById('t-producto').innerText = ticketActualizado.producto;
+            document.getElementById('t-ppu').innerText = ticketActualizado.ppu;
+            document.getElementById('t-volumen').innerText = String(ticketActualizado.volumen).replace('.', ',');
+            document.getElementById('t-dinero').innerText = ticketActualizado.dinero;
+            document.getElementById('t-leyenda').innerText = "** COPIA **";
+
+            setTimeout(() => {
+                window.print();
+            }, 250);
+        }
+
+        function enlazarEventosInterfaz() {
+            try {
+                const posForm = document.getElementById('posForm');
+                if (posForm && !posForm.dataset.bound) {
+                    posForm.dataset.bound = '1';
+                    posForm.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        return false;
+                    });
+                }
+
+                const tabFact = document.getElementById('tabFacturacion');
+                const tabReimp = document.getElementById('tabReimpresion');
+                if (tabFact && !tabFact.dataset.bound) {
+                    tabFact.dataset.bound = '1';
+                    tabFact.addEventListener('click', () => activarModulo('facturacion'));
+                }
+                if (tabReimp && !tabReimp.dataset.bound) {
+                    tabReimp.dataset.bound = '1';
+                    tabReimp.addEventListener('click', () => activarModulo('reimpresion'));
+                }
+
+                const selProducto = document.getElementById('producto');
+                const inpPpu = document.getElementById('ppu');
+                const inpVol = document.getElementById('volumen');
+                const btnImp = document.getElementById('btnImprimir');
+
+                if (selProducto && !selProducto.dataset.bound) {
+                    selProducto.dataset.bound = '1';
+                    selProducto.addEventListener('change', cambiarProductoYPrecio);
+                }
+                if (inpPpu && !inpPpu.dataset.bound) {
+                    inpPpu.dataset.bound = '1';
+                    inpPpu.addEventListener('input', calcularTotal);
+                }
+                if (inpVol && !inpVol.dataset.bound) {
+                    inpVol.dataset.bound = '1';
+                    inpVol.addEventListener('input', calcularTotal);
+                }
+                if (btnImp && !btnImp.dataset.bound) {
+                    btnImp.dataset.bound = '1';
+                    btnImp.addEventListener('click', procesarImpresionYGuardar);
+                }
+
+                const filtroEl = document.getElementById('filtroTicket');
+                const btnRefrescar = document.getElementById('btnRefrescarBase');
+                const btnReimpDirecto = document.getElementById('btnReimprimirDirecto');
+
+                if (filtroEl && !filtroEl.dataset.bound) {
+                    filtroEl.dataset.bound = '1';
+                    ['input', 'keyup', 'change'].forEach(ev => {
+                        filtroEl.addEventListener(ev, manejarBusquedaTicket);
+                    });
+                }
+                if (btnRefrescar && !btnRefrescar.dataset.bound) {
+                    btnRefrescar.dataset.bound = '1';
+                    btnRefrescar.addEventListener('click', () => cargarTicketsDesdeBaseRemota(true));
+                }
+                if (btnReimpDirecto && !btnReimpDirecto.dataset.bound) {
+                    btnReimpDirecto.dataset.bound = '1';
+                    btnReimpDirecto.addEventListener('click', reimprimirPorConsecutivoDirecto);
+                }
+            } catch (e) {
+                console.error('Error en enlazarEventosInterfaz:', e);
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                enlazarEventosInterfaz();
+                renderizarTicketsGuardados();
+            });
+        } else {
+            enlazarEventosInterfaz();
+            renderizarTicketsGuardados();
+        }
+    </script>
+</body>
+</html>
