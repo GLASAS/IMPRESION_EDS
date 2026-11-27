@@ -3,6 +3,7 @@ const LIMITE_ULTIMOS_REGISTROS = 10;
 let memoriaTicketsRespaldo = [];
 let baseRemotaCargada = false;
 let consultaRemotaEnCurso = false;
+let watchdogConsultaTimer = null;
 
 function normalizarTextoBusqueda(txt) {
     return String(txt || '')
@@ -99,7 +100,15 @@ function normalizarListaTickets(rawLista) {
     }).filter(t => t.placa || t.cliente || t.consecutivo || t.dinero !== '0');
 }
 
+function limpiarWatchdog() {
+    if (watchdogConsultaTimer) {
+        clearTimeout(watchdogConsultaTimer);
+        watchdogConsultaTimer = null;
+    }
+}
+
 function finalizarConsultaSinDatos(detalle = '') {
+    limpiarWatchdog();
     consultaRemotaEnCurso = false;
     const estadoEl = document.getElementById('estadoSincronizacionBase');
     const locales = obtenerTicketsGuardados();
@@ -112,6 +121,7 @@ function finalizarConsultaSinDatos(detalle = '') {
 }
 
 function fusionarTicketsRemotos(ticketsRemotos, fuenteTexto = '') {
+    limpiarWatchdog();
     consultaRemotaEnCurso = false;
     const estadoEl = document.getElementById('estadoSincronizacionBase');
     const normalizados = normalizarListaTickets(ticketsRemotos);
@@ -157,14 +167,22 @@ function cargarTicketsDesdeBaseRemota(forzar = false) {
     if (consultaRemotaEnCurso && !forzar) {
         return;
     }
+
+    limpiarWatchdog();
     consultaRemotaEnCurso = true;
     if (estadoEl) estadoEl.innerText = "Consultando últimos 10 registros de FAC EDS...";
+
+    watchdogConsultaTimer = setTimeout(() => {
+        if (consultaRemotaEnCurso) {
+            finalizarConsultaSinDatos('Tiempo agotado');
+        }
+    }, 6500);
 
     cargarViaJSONP();
 }
 
 function cargarViaJSONP() {
-    const urlActual = (typeof scriptURL !== 'undefined' && scriptURL) ? scriptURL : SCRIPT_URL_ACTUAL;
+    const urlActual = (typeof scriptURL === 'string' && scriptURL.trim()) ? scriptURL.trim() : SCRIPT_URL_ACTUAL;
     const callbackName = 'edsCallback_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
     const scriptTag = document.createElement('script');
     let completado = false;
@@ -179,7 +197,7 @@ function cargarViaJSONP() {
         completado = true;
         limpiar();
         finalizarConsultaSinDatos('Sin respuesta de Apps Script');
-    }, 6000);
+    }, 5500);
 
     window[callbackName] = function (data) {
         if (completado) return;
@@ -202,7 +220,7 @@ function cargarViaJSONP() {
         completado = true;
         clearTimeout(timer);
         limpiar();
-        finalizarConsultaSinDatos('Revisar implementación de Apps Script');
+        finalizarConsultaSinDatos('Revisar acceso público de Apps Script');
     };
 
     scriptTag.src = `${urlActual}?action=listarTickets&limit=100&callback=${callbackName}&_=${Date.now()}`;
