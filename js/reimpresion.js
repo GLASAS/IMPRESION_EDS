@@ -154,7 +154,8 @@ function cargarTicketsDesdeBaseRemota(forzar = false) {
     consultaRemotaEnCurso = true;
     if (estadoEl) estadoEl.innerText = "Consultando últimos 10 registros de FAC EDS...";
 
-    const urlFetch = `${scriptURL}?action=listarTickets&_=${Date.now()}`;
+    const urlActual = (typeof scriptURL !== 'undefined' && scriptURL) ? scriptURL : SCRIPT_URL_ACTUAL;
+    const urlFetch = `${urlActual}?action=listarTickets&_=${Date.now()}`;
     const fetchTimer = setTimeout(() => {
         if (!consultaRemotaEnCurso) return;
         cargarViaJSONP('Tiempo de espera');
@@ -224,7 +225,8 @@ function cargarViaJSONP(motivoFetch) {
         activarRespaldoHoja(motivoFetch);
     };
 
-    scriptTag.src = `${scriptURL}?action=listarTickets&callback=${callbackName}&_=${Date.now()}`;
+    const urlActual = (typeof scriptURL !== 'undefined' && scriptURL) ? scriptURL : SCRIPT_URL_ACTUAL;
+    scriptTag.src = `${urlActual}?action=listarTickets&callback=${callbackName}&_=${Date.now()}`;
     document.body.appendChild(scriptTag);
 }
 
@@ -275,7 +277,7 @@ function cargarDesdeCSVHoja(motivoFetch) {
             const invertidas = [...filasDatos].reverse();
             const convertidos = [];
 
-            for (let i = 0; i < invertidas.length && convertidos.length < 100; i++) {
+            for (let i = 0; i < invertidas.length && convertidos.length < 200; i++) {
                 const c = invertidas[i];
                 const fechaCompleta = c[0] || '';
                 const placa = (c[1] || '').toUpperCase().trim();
@@ -354,7 +356,7 @@ function cargarDesdeGoogleSheetGViz(motivoFetch) {
             const invertidas = [...rows].reverse();
             const convertidos = [];
 
-            for (let i = 0; i < invertidas.length && convertidos.length < 100; i++) {
+            for (let i = 0; i < invertidas.length && convertidos.length < 200; i++) {
                 const c = invertidas[i].c || [];
                 const val = (idx) => {
                     const cell = c[idx];
