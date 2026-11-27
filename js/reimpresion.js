@@ -3,6 +3,7 @@ const LIMITE_ULTIMOS_REGISTROS = 10;
 let memoriaTicketsRespaldo = [];
 let baseRemotaCargada = false;
 let consultaRemotaEnCurso = false;
+let watchdogConsultaTimer = null;
 
 function normalizarTextoBusqueda(txt) {
     return String(txt || '')
@@ -33,11 +34,13 @@ function manejarBusquedaTicket() {
 function obtenerTicketsGuardados() {
     let listaLocal = [];
     try {
-        const raw = localStorage.getItem(STORAGE_TICKETS_KEY);
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-                listaLocal = parsed;
+        if (typeof localStorage !== 'undefined') {
+            const raw = localStorage.getItem(STORAGE_TICKETS_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) {
+                    listaLocal = parsed;
+                }
             }
         }
     } catch (e) {}
@@ -68,7 +71,9 @@ function guardarTicketLocal(ticket) {
     memoriaTicketsRespaldo = recortada;
 
     try {
-        localStorage.setItem(STORAGE_TICKETS_KEY, JSON.stringify(recortada));
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(STORAGE_TICKETS_KEY, JSON.stringify(recortada));
+        }
     } catch (e) {}
     return registroActualizado;
 }
@@ -96,23 +101,38 @@ function normalizarListaTickets(rawLista) {
             autorizacion: String(item.autorizacion || '').trim(),
             vecesImpreso: parseInt(item.vecesImpreso, 10) || 1
         };
-    }).filter(t => t.placa || t.cliente || t.consecutivo);
+    }).filter(t => t.placa || t.cliente || t.consecutivo || t.dinero !== '0');
+}
+
+function limpiarWatchdogConsulta() {
+    if (watchdogConsultaTimer) {
+        clearTimeout(watchdogConsultaTimer);
+        watchdogConsultaTimer = null;
+    }
 }
 
 function finalizarConsultaSinDatos(detalle = '') {
+    limpiarWatchdogConsulta();
     consultaRemotaEnCurso = false;
     const estadoEl = document.getElementById('estadoSincronizacionBase');
+    const locales = obtenerTicketsGuardados();
     if (estadoEl) {
-        estadoEl.innerText = `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales${detalle ? ' (' + detalle + ')' : ''}`;
+        estadoEl.innerText = locales.length > 0
+            ? `Mostrando últimos ${LIMITE_ULTIMOS_REGISTROS} registros locales${detalle ? ' (' + detalle + ')' : ''}`
+            : `Sin registros disponibles${detalle ? ' (' + detalle + ')' : ''}`;
     }
     renderizarTicketsGuardados();
 }
 
 function fusionarTicketsRemotos(ticketsRemotos, fuenteTexto = '') {
+    limpiarWatchdogConsulta();
     consultaRemotaEnCurso = false;
     const estadoEl = document.getElementById('estadoSincronizacionBase');
     const normalizados = normalizarListaTickets(ticketsRemotos);
-    if (!normalizados.length) return false;
+    if (!normalizados.length) {
+        finalizarConsultaSinDatos('Sin filas');
+        return false;
+    }
 
     const locales = obtenerTicketsGuardados();
     const combinados = [...normalizados];
@@ -131,7 +151,9 @@ function fusionarTicketsRemotos(ticketsRemotos, fuenteTexto = '') {
     const recortada = combinados.slice(0, 200);
     memoriaTicketsRespaldo = recortada;
     try {
-        localStorage.setItem(STORAGE_TICKETS_KEY, JSON.stringify(recortada));
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(STORAGE_TICKETS_KEY, JSON.stringify(recortada));
+        }
     } catch (e) {}
 
     baseRemotaCargada = true;
@@ -151,45 +173,29 @@ function cargarTicketsDesdeBaseRemota(forzar = false) {
     if (consultaRemotaEnCurso && !forzar) {
         return;
     }
+
+    limpiarWatchdogConsulta();
     consultaRemotaEnCurso = true;
     if (estadoEl) estadoEl.innerText = "Consultando últimos 10 registros de FAC EDS...";
 
-    const urlFetch = `${scriptURL}?action=listarTickets&_=${Date.now()}`;
-    const fetchTimer = setTimeout(() => {
-        if (!consultaRemotaEnCurso) return;
-        cargarViaJSONP('Tiempo de espera');
-    }, 3000);
+    watchdogConsultaTimer = setTimeout(() => {
+        if (consultaRemotaEnCurso) {
+            finalizarConsultaSinDatos('Tiempo de espera agotado');
+        }
+    }, 9000);
 
-    fetch(urlFetch, { method: 'GET', cache: 'no-store' })
-        .then(res => {
-            clearTimeout(fetchTimer);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return res.json();
-        })
-        .then(data => {
-            if (!consultaRemotaEnCurso) return;
-            const lista = Array.isArray(data) ? data : (data && Array.isArray(data.tickets) ? data.tickets : []);
-            if (lista.length > 0) {
-                fusionarTicketsRemotos(lista, 'Apps Script');
-            } else {
-                cargarViaJSONP(data && data.error ? `Error Apps Script: ${data.error}` : "Sin filas en JSON");
-            }
-        })
-        .catch(err => {
-            clearTimeout(fetchTimer);
-            if (!consultaRemotaEnCurso) return;
-            cargarViaJSONP(err && err.message ? err.message : 'Apps Script');
-        });
+    cargarViaJSONP('Apps Script');
 }
 
 function cargarViaJSONP(motivoFetch) {
-    const callbackName = 'edsCallback_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+    const urlBase = (typeof scriptURL === 'string' && scriptURL.trim()) ? scriptURL.trim() : SCRIPT_URL_ACTUAL;
+    const callbackName = 'edsCallback_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
     const scriptTag = document.createElement('script');
     let completado = false;
 
     const limpiar = () => {
         try { delete window[callbackName]; } catch (e) {}
-        if (scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
+        if (scriptTag && scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
     };
 
     const activarRespaldoHoja = (motivo) => {
@@ -200,8 +206,8 @@ function cargarViaJSONP(motivoFetch) {
         if (completado) return;
         completado = true;
         limpiar();
-        activarRespaldoHoja(motivoFetch);
-    }, 3000);
+        activarRespaldoHoja('Sin respuesta Apps Script');
+    }, 4500);
 
     window[callbackName] = function (data) {
         if (completado) return;
@@ -210,22 +216,24 @@ function cargarViaJSONP(motivoFetch) {
         limpiar();
         const lista = Array.isArray(data) ? data : (data && Array.isArray(data.tickets) ? data.tickets : []);
         if (lista.length > 0) {
-            fusionarTicketsRemotos(lista, 'JSONP');
+            fusionarTicketsRemotos(lista, 'Apps Script');
         } else {
             activarRespaldoHoja(data && data.error ? `Error JSONP: ${data.error}` : motivoFetch);
         }
     };
 
+    scriptTag.type = 'text/javascript';
+    scriptTag.async = true;
     scriptTag.onerror = function () {
         if (completado) return;
         completado = true;
         clearTimeout(timer);
         limpiar();
-        activarRespaldoHoja(motivoFetch);
+        activarRespaldoHoja('Error script Apps Script');
     };
 
-    scriptTag.src = `${scriptURL}?action=listarTickets&callback=${callbackName}&_=${Date.now()}`;
-    document.body.appendChild(scriptTag);
+    scriptTag.src = `${urlBase}?action=listarTickets&limit=100&callback=${callbackName}&_=${Date.now()}`;
+    (document.head || document.body || document.documentElement).appendChild(scriptTag);
 }
 
 function parsearLineaCSV(linea) {
@@ -326,13 +334,13 @@ function cargarDesdeCSVHoja(motivoFetch) {
 }
 
 function cargarDesdeGoogleSheetGViz(motivoFetch) {
-    const gvizCallback = 'gvizCb_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+    const gvizCallback = 'gvizCb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
     const scriptTag = document.createElement('script');
     let listo = false;
 
     const limpiar = () => {
         try { delete window[gvizCallback]; } catch (e) {}
-        if (scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
+        if (scriptTag && scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
     };
 
     const timer = setTimeout(() => {
@@ -408,6 +416,8 @@ function cargarDesdeGoogleSheetGViz(motivoFetch) {
         }
     };
 
+    scriptTag.type = 'text/javascript';
+    scriptTag.async = true;
     scriptTag.onerror = function () {
         if (listo) return;
         listo = true;
@@ -418,7 +428,7 @@ function cargarDesdeGoogleSheetGViz(motivoFetch) {
 
     const sheetParam = encodeURIComponent(SHEET_NAME);
     scriptTag.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${sheetParam}&tqx=responseHandler:${gvizCallback}&_=${Date.now()}`;
-    document.body.appendChild(scriptTag);
+    (document.head || document.body || document.documentElement).appendChild(scriptTag);
 }
 
 function registrarReimpresionEnDrive(ticket) {
@@ -428,26 +438,28 @@ function registrarReimpresionEnDrive(ticket) {
         estadoEl.innerText = `Guardando reimpresión de ${ticket.placa} (#${ticket.consecutivo}) en FAC EDS...`;
     }
 
-    enviarEventoASheet({
-        fechaHora: ahoraReimpresion,
-        fechaHoraReimpresion: ahoraReimpresion,
-        fechaHoraOriginal: `${ticket.fecha} ${ticket.hora}`,
-        placa: ticket.placa,
-        cliente: ticket.cliente,
-        km: ticket.km || '0',
-        producto: ticket.producto,
-        ppu: ticket.ppu,
-        volumen: ticket.volumen,
-        dinero: ticket.dinero,
-        autorizacion: ticket.autorizacion || '',
-        consecutivo: ticket.consecutivo,
-        tipoEvento: 'REIMPRESION',
-        vecesImpreso: String(ticket.vecesImpreso)
-    }, () => {
-        if (estadoEl) {
-            estadoEl.innerText = `Reimpresión registrada (${ticket.placa} · #${ticket.consecutivo} · ${ahoraReimpresion}).`;
-        }
-    });
+    if (typeof enviarEventoASheet === 'function') {
+        enviarEventoASheet({
+            fechaHora: ahoraReimpresion,
+            fechaHoraReimpresion: ahoraReimpresion,
+            fechaHoraOriginal: `${ticket.fecha} ${ticket.hora}`,
+            placa: ticket.placa,
+            cliente: ticket.cliente,
+            km: ticket.km || '0',
+            producto: ticket.producto,
+            ppu: ticket.ppu,
+            volumen: ticket.volumen,
+            dinero: ticket.dinero,
+            autorizacion: ticket.autorizacion || '',
+            consecutivo: ticket.consecutivo,
+            tipoEvento: 'REIMPRESION',
+            vecesImpreso: String(ticket.vecesImpreso)
+        }, () => {
+            if (estadoEl) {
+                estadoEl.innerText = `Reimpresión registrada (${ticket.placa} · #${ticket.consecutivo} · ${ahoraReimpresion}).`;
+            }
+        });
+    }
 }
 
 function obtenerTicketsFiltradosUltimos10() {
@@ -480,7 +492,6 @@ function obtenerTicketsFiltradosUltimos10() {
         })
         .slice(0, LIMITE_ULTIMOS_REGISTROS);
 }
-
 
 function renderizarTicketsGuardados() {
     const contenedor = document.getElementById('listaTicketsGuardados');
@@ -552,18 +563,25 @@ function ejecutarReimpresion(claveBuscada) {
     registrarReimpresionEnDrive(ticketActualizado);
     renderizarTicketsGuardados();
 
-    document.getElementById('t-num').innerText = ticketActualizado.consecutivo;
-    document.getElementById('t-fecha').innerText = ticketActualizado.fecha;
-    document.getElementById('t-hora').innerText = ticketActualizado.hora;
-    document.getElementById('t-placa').innerText = ticketActualizado.placa;
-    document.getElementById('t-cliente').innerText = ticketActualizado.cliente;
-    document.getElementById('t-km').innerText = ticketActualizado.km || '0';
-    actualizarAutorizacionEnTicket(ticketActualizado.autorizacion);
-    document.getElementById('t-producto').innerText = ticketActualizado.producto;
-    document.getElementById('t-ppu').innerText = ticketActualizado.ppu;
-    document.getElementById('t-volumen').innerText = String(ticketActualizado.volumen).replace('.', ',');
-    document.getElementById('t-dinero').innerText = ticketActualizado.dinero;
-    document.getElementById('t-leyenda').innerText = "** COPIA **";
+    const setTicketText = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = val;
+    };
+
+    setTicketText('t-num', ticketActualizado.consecutivo);
+    setTicketText('t-fecha', ticketActualizado.fecha);
+    setTicketText('t-hora', ticketActualizado.hora);
+    setTicketText('t-placa', ticketActualizado.placa);
+    setTicketText('t-cliente', ticketActualizado.cliente);
+    setTicketText('t-km', ticketActualizado.km || '0');
+    if (typeof actualizarAutorizacionEnTicket === 'function') {
+        actualizarAutorizacionEnTicket(ticketActualizado.autorizacion);
+    }
+    setTicketText('t-producto', ticketActualizado.producto);
+    setTicketText('t-ppu', ticketActualizado.ppu);
+    setTicketText('t-volumen', String(ticketActualizado.volumen).replace('.', ','));
+    setTicketText('t-dinero', ticketActualizado.dinero);
+    setTicketText('t-leyenda', "** COPIA **");
 
     setTimeout(() => {
         window.print();
