@@ -1,8 +1,8 @@
 const SHEET_ID = "1kpCmuE1pzVlyd2xZhr7hyNnGUKaDI-pVZvHgB61pEYM";
 const SHEET_NAME = "FAC EDS";
 const SHEET_GID = "0";
-const SCRIPT_URL_ACTUAL = "https://script.google.com/macros/s/AKfycbz0wJyzs6rw0utuEHdh1869-3VeuJJygdef4wP0KrzEYa13zL5iRr2Fs_ylkP0bWVplEQ/exec";
-var scriptURL = SCRIPT_URL_ACTUAL;
+const SCRIPT_URL_ACTUAL = "https://script.google.com/macros/s/AKfycbwBoF_PJjYZr1Ij_mkQnsvZQr6ak6-rPkE7FsDJbYiTebMupVeNWXIiKpkv2J8DKjiCfg/exec";
+let scriptURL = SCRIPT_URL_ACTUAL;
 
 try {
     localStorage.setItem('google_sheet_url', SCRIPT_URL_ACTUAL);
@@ -12,11 +12,9 @@ let ultimaLlaveEnvio = '';
 let ultimoTiempoEnvio = 0;
 
 function enviarEventoASheet(paramsObj, alTerminar) {
-    const urlDestino = (typeof scriptURL === 'string' && scriptURL.trim()) ? scriptURL.trim() : SCRIPT_URL_ACTUAL;
     const ahoraMs = Date.now();
     const llaveEnvio = `${paramsObj.tipoEvento || ''}|${paramsObj.consecutivo || ''}|${paramsObj.placa || ''}|${paramsObj.vecesImpreso || ''}`;
-
-    if (llaveEnvio === ultimaLlaveEnvio && (ahoraMs - ultimoTiempoEnvio) < 1500) {
+    if (llaveEnvio === ultimaLlaveEnvio && (ahoraMs - ultimoTiempoEnvio) < 2000) {
         if (typeof alTerminar === 'function') alTerminar(true);
         return;
     }
@@ -24,12 +22,11 @@ function enviarEventoASheet(paramsObj, alTerminar) {
     ultimoTiempoEnvio = ahoraMs;
 
     const formData = new URLSearchParams();
-    Object.keys(paramsObj || {}).forEach(k => {
-        const val = paramsObj[k];
-        formData.append(k, val !== undefined && val !== null ? String(val) : '');
+    Object.keys(paramsObj).forEach(k => {
+        formData.append(k, paramsObj[k] !== undefined && paramsObj[k] !== null ? String(paramsObj[k]) : '');
     });
 
-    fetch(urlDestino, {
+    fetch(scriptURL, {
         method: 'POST',
         mode: 'no-cors',
         body: formData
@@ -38,7 +35,7 @@ function enviarEventoASheet(paramsObj, alTerminar) {
             if (typeof alTerminar === 'function') alTerminar(true);
         })
         .catch(error => {
-            console.error('Error al enviar evento a Sheet:', error);
+            console.error('Error al sincronizar con Sheet:', error);
             if (typeof alTerminar === 'function') alTerminar(false);
         });
 }
