@@ -19,7 +19,7 @@
         <img class="logo-biomax" src="assets/logo biomax.png" alt="Logo Biomax" style="max-width: 140px; height: auto;" onerror="respaldoLogo(this)">
         <h1>EDS Orquídeas <br><span style="font-size: 1rem; font-weight: normal; color: #475569;">Facturación POS</span></h1>
         <div class="header-actions">
-            <span class="version-badge">V25.1140</span>
+            <span class="version-badge">V27.0646</span>
         </div>
     </header>
 
@@ -60,4 +60,101 @@
                             <option value="PAN FACTORY CALIDAD ALEMANA SAS">PAN FACTORY CALIDAD ALEMANA SAS</option>
                             <option value="PROVINCIA NUESTRA SEÑORA DEGRACIA P">PROVINCIA NUESTRA SEÑORA DEGRACIA P</option>
                             <option value="MFS PRODUCTOS SAS">MFS PRODUCTOS SAS</option>
-                            <option value="
+                            <option value="OTROS">CLIENTE 2222222</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="autorizacion">Número de Autorización</label>
+                        <input type="text" id="autorizacion" placeholder="">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="producto">Tipo de Producto</label>
+                        <select id="producto">
+                            <option value="DIESEL" selected>DIESEL (ACPM)</option>
+                            <option value="GASOLINA CORRIENTE">GASOLINA CORRIENTE</option>
+                            <option value="GASOLINA EXTRA">GASOLINA EXTRA</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ppu">Valor del Galón ($ PPU)</label>
+                        <input type="number" id="ppu" value="11380" step="1" required placeholder="">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="volumen">Volumen (Galones)</label>
+                        <input type="number" id="volumen" step="0.001" required placeholder="">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dinero">Dinero Total ($)</label>
+                        <input type="number" id="dinero" step="1" required readonly placeholder="">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="km">Kilometraje (Opcional)</label>
+                        <input type="number" id="km" placeholder="">
+                    </div>
+
+                    <div class="actions">
+                        <button type="button" class="btn-primary" id="btnImprimir">🖨️ Imprimir Ticket y Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- MÓDULO 2: REIMPRESIÓN DE TICKETS -->
+        <section id="modulo-reimpresion" class="module-section">
+            <div class="panel">
+                <h2>Reimprimir Ticket Creado (Últimos 10)</h2>
+                <div class="search-row">
+                    <input type="text" id="filtroTicket" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="Buscar por placa, consecutivo o cliente...">
+                    <button type="button" class="btn-refresh" id="btnRefrescarBase">🔄 Actualizar</button>
+                    <button type="button" class="btn-secondary" id="btnReimprimirDirecto">🖨️ Reimprimir</button>
+                </div>
+                <div id="estadoSincronizacionBase" class="sync-status"></div>
+                <div id="listaTicketsGuardados" class="ticket-list"></div>
+            </div>
+        </section>
+    </div>
+
+    <!-- PLANTILLA TICKET TÉRMICO -->
+    <div class="ticket-print-only" id="ticketImpresion"><br><br><br>
+<div class="text-center">
+    <img class="logo-biomax" src="assets/logo biomax.png" alt="Logo Biomax" style="max-width: 100px; height: auto; margin-bottom: 3px;" onerror="respaldoLogo(this)">
+</div>
+<div class="text-center">EDS ORQUIDEAS SAS</div>
+<div class="text-center">NIT. 900.879.336</div>
+<div class="text-center">DIRECCION CALLE 161 # 18 - 30</div>
+<div class="text-center">BOGOTA D.C</div>
+
+Numero : <span id="t-num">22154</span>
+Fecha : <span id="t-fecha">29/09/2026</span>
+Hora : <span id="t-hora">05:34 AM</span>
+
+Placa : <span id="t-placa">SMM646</span>
+Cuenta :
+<span id="t-cliente">PAN FACTORY</span>
+Km : <span id="t-km">319505</span><span id="t-autorizacion-linea"></span>
+Pago : PRIVADA
+Posicion : 1
+
+Producto: <span id="t-producto">DIESEL</span>
+PPU : $/G.<span id="t-ppu">11380</span>
+Volumen : G.<span id="t-volumen">14,533</span>
+Dinero : $<span id="t-dinero">165386</span>
+
+<div class="text-center">GRACIAS POR SU COMPRA</div>
+<div class="text-center">VUELVA PRONTO</div>
+
+<div class="text-center" id="t-leyenda">** COPIA **</div><br><br><br><br>.</div>
+
+    <!-- ORDEN DE CARGA DE SCRIPTS -->
+    <script src="js/config.js?v=25.1140"></script>
+    <script src="js/facturacion.js?v=25.1140"></script>
+    <script src="js/reimpresion.js?v=25.1140"></script>
+    <script src="js/app.js?v=25.1140"></script>
+</body>
+</html>
