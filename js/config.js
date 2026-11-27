@@ -12,9 +12,11 @@ let ultimaLlaveEnvio = '';
 let ultimoTiempoEnvio = 0;
 
 function enviarEventoASheet(paramsObj, alTerminar) {
+    const urlDestino = (typeof scriptURL === 'string' && scriptURL.trim()) ? scriptURL.trim() : SCRIPT_URL_ACTUAL;
     const ahoraMs = Date.now();
     const llaveEnvio = `${paramsObj.tipoEvento || ''}|${paramsObj.consecutivo || ''}|${paramsObj.placa || ''}|${paramsObj.vecesImpreso || ''}`;
-    if (llaveEnvio === ultimaLlaveEnvio && (ahoraMs - ultimoTiempoEnvio) < 2000) {
+
+    if (llaveEnvio === ultimaLlaveEnvio && (ahoraMs - ultimoTiempoEnvio) < 1500) {
         if (typeof alTerminar === 'function') alTerminar(true);
         return;
     }
@@ -22,11 +24,12 @@ function enviarEventoASheet(paramsObj, alTerminar) {
     ultimoTiempoEnvio = ahoraMs;
 
     const formData = new URLSearchParams();
-    Object.keys(paramsObj).forEach(k => {
-        formData.append(k, paramsObj[k] !== undefined && paramsObj[k] !== null ? String(paramsObj[k]) : '');
+    Object.keys(paramsObj || {}).forEach(k => {
+        const val = paramsObj[k];
+        formData.append(k, val !== undefined && val !== null ? String(val) : '');
     });
 
-    fetch(scriptURL, {
+    fetch(urlDestino, {
         method: 'POST',
         mode: 'no-cors',
         body: formData
@@ -35,7 +38,7 @@ function enviarEventoASheet(paramsObj, alTerminar) {
             if (typeof alTerminar === 'function') alTerminar(true);
         })
         .catch(error => {
-            console.error('Error al sincronizar con Sheet:', error);
+            console.error('Error al enviar evento a Sheet:', error);
             if (typeof alTerminar === 'function') alTerminar(false);
         });
 }
