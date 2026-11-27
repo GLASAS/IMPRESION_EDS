@@ -10,7 +10,7 @@ function activarModulo(nombreModulo) {
         if (tabFact) tabFact.classList.toggle('active', nombreModulo === 'facturacion');
         if (tabReimp) tabReimp.classList.toggle('active', nombreModulo === 'reimpresion');
 
-        if (nombreModulo === 'reimpresion' && typeof cargarTicketsDesdeBaseRemota === 'function') {
+        if (nombreModulo === 'reimpresion') {
             renderizarTicketsGuardados();
             cargarTicketsDesdeBaseRemota(true);
         }
@@ -76,11 +76,7 @@ function enlazarEventosInterfaz() {
         }
         if (btnRefrescar && !btnRefrescar.dataset.bound) {
             btnRefrescar.dataset.bound = '1';
-            btnRefrescar.addEventListener('click', () => {
-                if (typeof cargarTicketsDesdeBaseRemota === 'function') {
-                    cargarTicketsDesdeBaseRemota(true);
-                }
-            });
+            btnRefrescar.addEventListener('click', () => cargarTicketsDesdeBaseRemota(true));
         }
         if (btnReimpDirecto && !btnReimpDirecto.dataset.bound) {
             btnReimpDirecto.dataset.bound = '1';
@@ -105,13 +101,9 @@ function enlazarEventosInterfaz() {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         enlazarEventosInterfaz();
-        if (typeof renderizarTicketsGuardados === 'function') {
-            renderizarTicketsGuardados();
-        }
+        renderizarTicketsGuardados();
     });
 } else {
     enlazarEventosInterfaz();
-    if (typeof renderizarTicketsGuardados === 'function') {
-        renderizarTicketsGuardados();
-    }
+    renderizarTicketsGuardados();
 }
