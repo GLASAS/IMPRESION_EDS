@@ -182,7 +182,7 @@ function cargarTicketsDesdeBaseRemota(forzar = false) {
         if (consultaRemotaEnCurso) {
             finalizarConsultaSinDatos('Tiempo de espera agotado');
         }
-    }, 9000);
+    }, 18000);
 
     cargarViaJSONP('Apps Script');
 }
@@ -207,7 +207,7 @@ function cargarViaJSONP(motivoFetch) {
         completado = true;
         limpiar();
         activarRespaldoHoja('Sin respuesta Apps Script');
-    }, 4500);
+    }, 12000);
 
     window[callbackName] = function (data) {
         if (completado) return;
@@ -264,7 +264,7 @@ function cargarDesdeCSVHoja(motivoFetch) {
     const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}&_=${Date.now()}`;
     const csvTimer = setTimeout(() => {
         finalizarConsultaSinDatos(motivoFetch);
-    }, 3000);
+    }, 4000);
 
     fetch(csvUrl, { method: 'GET', cache: 'no-store' })
         .then(res => {
@@ -348,7 +348,7 @@ function cargarDesdeGoogleSheetGViz(motivoFetch) {
         listo = true;
         limpiar();
         cargarDesdeCSVHoja(motivoFetch);
-    }, 3000);
+    }, 4000);
 
     window[gvizCallback] = function (resp) {
         if (listo) return;
