@@ -96,7 +96,7 @@ function normalizarListaTickets(rawLista) {
             autorizacion: String(item.autorizacion || '').trim(),
             vecesImpreso: parseInt(item.vecesImpreso, 10) || 1
         };
-    }).filter(t => t.placa || t.cliente || t.consecutivo);
+    }).filter(t => t.placa || t.cliente || t.consecutivo || t.dinero !== '0');
 }
 
 function finalizarConsultaSinDatos(detalle = '') {
@@ -116,7 +116,7 @@ function fusionarTicketsRemotos(ticketsRemotos, fuenteTexto = '') {
     const estadoEl = document.getElementById('estadoSincronizacionBase');
     const normalizados = normalizarListaTickets(ticketsRemotos);
     if (!normalizados.length) {
-        finalizarConsultaSinDatos('Hoja vacía');
+        finalizarConsultaSinDatos('Sin filas');
         return false;
     }
 
@@ -160,7 +160,57 @@ function cargarTicketsDesdeBaseRemota(forzar = false) {
     consultaRemotaEnCurso = true;
     if (estadoEl) estadoEl.innerText = "Consultando últimos 10 registros de FAC EDS...";
 
-    cargarDesdeGoogleSheetGViz('Consulta directa');
+    cargarViaJSONP('Apps Script JSONP');
+}
+
+function cargarViaJSONP(motivoFetch) {
+    const urlActual = (typeof scriptURL !== 'undefined' && scriptURL) ? scriptURL : SCRIPT_URL_ACTUAL;
+    const callbackName = 'edsCallback_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+    const scriptTag = document.createElement('script');
+    let completado = false;
+
+    const limpiar = () => {
+        try { delete window[callbackName]; } catch (e) {}
+        if (scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
+    };
+
+    const pasarARespaldoSheet = (detalle) => {
+        cargarDesdeGoogleSheetGViz(detalle || motivoFetch);
+    };
+
+    const timer = setTimeout(() => {
+        if (completado) return;
+        completado = true;
+        limpiar();
+        pasarARespaldoSheet('Timeout Apps Script');
+    }, 5000);
+
+    window[callbackName] = function (data) {
+        if (completado) return;
+        completado = true;
+        clearTimeout(timer);
+        limpiar();
+
+        const lista = Array.isArray(data) ? data : (data && Array.isArray(data.tickets) ? data.tickets : []);
+        if (lista.length > 0) {
+            fusionarTicketsRemotos(lista, 'Apps Script');
+        } else if (data && data.ok === false) {
+            pasarARespaldoSheet(data.error || 'Error Apps Script');
+        } else {
+            pasarARespaldoSheet('Sin registros en Apps Script');
+        }
+    };
+
+    scriptTag.onerror = function () {
+        if (completado) return;
+        completado = true;
+        clearTimeout(timer);
+        limpiar();
+        pasarARespaldoSheet('Error script Apps Script');
+    };
+
+    scriptTag.src = `${urlActual}?action=listarTickets&limit=100&callback=${callbackName}&_=${Date.now()}`;
+    document.body.appendChild(scriptTag);
 }
 
 function parsearLineaCSV(linea) {
@@ -256,12 +306,12 @@ function cargarDesdeCSVHoja(motivoFetch) {
         })
         .catch(() => {
             clearTimeout(csvTimer);
-            finalizarConsultaSinDatos(motivoFetch || 'Error de red');
+            finalizarConsultaSinDatos(motivoFetch || 'Verificar publicación/permisos');
         });
 }
 
 function cargarDesdeGoogleSheetGViz(motivoFetch) {
-    const gvizCallback = 'gvizCb_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+    const gvizCallback = 'gvizCb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
     const scriptTag = document.createElement('script');
     let listo = false;
 
